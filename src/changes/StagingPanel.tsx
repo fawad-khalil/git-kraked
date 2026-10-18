@@ -1,13 +1,15 @@
-import { confirmDialog, errorDialog } from "../ui/dialogs";
-import { useState } from "react";
+import { confirmDialog } from "../ui/dialogs";
+import { useEffect, useState } from "react";
+import { editIdentity, offerFix } from "../repos/fixes";
 import {
+  Identity,
   WorkingStatus,
   abortMerge,
   abortCherryPick,
   continueCherryPick,
-  asCommandError,
   commit,
   commitDetails,
+  getIdentity,
   resolveConflict,
   stageFiles,
   unstageFiles,
@@ -34,18 +36,39 @@ export function StagingPanel({ repoPath, status, headCommit, activeFile, onOpenF
   const [amend, setAmend] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const [identity, setIdentity] = useState<Identity | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    getIdentity(repoPath).then((who) => live && setIdentity(who), () => live && setIdentity(null));
+    return () => {
+      live = false;
+    };
+  }, [repoPath]);
+
+  const reloadIdentity = () => getIdentity(repoPath).then(setIdentity, () => setIdentity(null));
+
+  /** Runs an action; a fixable failure (e.g. no name and email yet) is offered its fix and retried. */
   async function run(action: () => Promise<unknown>, committed = false) {
     setBusy(true);
     try {
-      await action();
-      onChanged(committed);
-      return true;
-    } catch (e) {
-      errorDialog(asCommandError(e).message, "That didn't work");
-      return false;
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await action();
+          onChanged(committed);
+          return true;
+        } catch (e) {
+          if (!(await offerFix(e, repoPath)) || attempt >= 2) return false;
+          reloadIdentity();
+        }
+      }
     } finally {
       setBusy(false);
     }
+  }
+
+  async function changeIdentity() {
+    if (await editIdentity(repoPath)) reloadIdentity();
   }
 
   async function toggleAmend(on: boolean) {
@@ -215,6 +238,19 @@ export function StagingPanel({ repoPath, status, headCommit, activeFile, onOpenF
         <button className="primary" disabled={!canCommit} onClick={doCommit}>
           {amend ? "Amend commit" : status.staged.length > 0 ? `Commit ${status.staged.length} ${status.staged.length === 1 ? "file" : "files"}` : "Commit"}
         </button>
+        <p className="commit-identity">
+          {identity?.name && identity.email ? (
+            <>
+              <span title={`${identity.name} <${identity.email}>${identity.local ? " (this repository only)" : ""}`}>
+                As {identity.name}
+                {identity.local ? " (this repository)" : ""}
+              </span>{" "}
+              · <button onClick={changeIdentity}>Change</button>
+            </>
+          ) : (
+            <button onClick={changeIdentity}>Set your name and email</button>
+          )}
+        </p>
       </section>}
     </div>
   );
