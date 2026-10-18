@@ -57,7 +57,7 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
 | `branches/` | Left panel, branch tree view, branch capsule, worktree dialog. |
 | `sync/` | Fetch, pull, pull-from, push, stash buttons. |
 | `clone/`, `cherry/` | Clone and cherry-pick dialogs. |
-| `ui/` | `Section` (collapsible), `PaneResizer`, `ThemeSwitch`, `ListFilter`, toolbar `icons`. |
+| `ui/` | `Section` (collapsible), `PaneResizer`, `ThemeSwitch`, `ListFilter`, toolbar `icons`, `dialogs` (pop-ups). |
 
 ## Key decisions
 
@@ -93,6 +93,10 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
   loaded history, so switching tabs reloads the repository; each `load` takes a token and drops
   results of a load that a newer one overtook, so quick tab switches can't mix repositories.
   `usePref` now also stores arrays and takes update functions.
+- **Pop-ups instead of native dialogs.** Confirmations and errors use the app's own dialogs
+  (`ui/dialogs.tsx`: `confirmDialog`, `errorDialog`, `chooseDialog`, shown one at a time by
+  `DialogHost`) so they match the theme and can offer specific actions (Trust and open, Close
+  its tab). The Tauri dialog plugin is now only used for folder pickers.
 - **New repository** uses libgit2's init; the first branch name follows Git's
   `init.defaultBranch`. Picking a folder that's already a repository just opens it.
 - **Filtered history** is computed in the backend over the loaded rows; filtered rows show dots
@@ -115,6 +119,13 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
   mode, centre view) are per machine in localStorage.
 
 ## Change log
+
+### 2026-10-18 — Round 7
+- Errors and confirmations are pop-ups with action buttons instead of red text on the page or
+  native message boxes; destructive actions have red buttons; errors can be copied.
+- A repository that fails to open offers its fix (trust the folder) or a way out (close its
+  tab, open another folder).
+- Errors that stay inside a panel or form are shown in a tinted box.
 
 ### 2026-10-18 — Round 6
 - Repository tabs: open several repositories, switch, close (× or middle-click); remembered
