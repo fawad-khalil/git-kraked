@@ -95,40 +95,99 @@ The three icons at the right end of the toolbar switch the theme: a monitor for 
 (follow your OS setting, the default), a sun for **Light** and a moon for **Dark**. The choice
 is remembered.
 
-## Prerequisites
+## Build from source
 
-- [Rust](https://rustup.rs/) (stable) and Node.js 20 or newer.
-- [Git](https://git-scm.com/) on your PATH. Fetch, pull, push, clone, cherry-pick and worktrees
-  run your own `git`, so they use the credentials and SSH keys it already has.
-- Tauri's system dependencies for your OS: <https://tauri.app/start/prerequisites/>
-  - **Windows:** Microsoft C++ Build Tools ("Desktop development with C++") and WebView2 (preinstalled on Windows 10 and 11).
-  - **macOS:** Xcode Command Line Tools (`xcode-select --install`).
-  - **Linux (Debian/Ubuntu):** `sudo apt install libwebkit2gtk-4.1-dev librsvg2-dev build-essential`.
+You need, on every platform:
 
-## Run it
+- **Rust 1.88 or newer** (the code uses Rust 2024), installed with [rustup](https://rustup.rs/).
+- **Node.js 20 or newer** with npm.
+- **Git** on your PATH. Fetch, pull, push, clone, cherry-pick and worktrees run your own `git`,
+  so they use the credentials and SSH keys it already has.
+- Tauri's system libraries for your OS, listed below (from
+  <https://tauri.app/start/prerequisites/>).
+
+libgit2 is compiled from source as part of the build, so it doesn't need installing. The first
+build compiles libgit2 and Tauri and takes a few minutes; later builds are quick.
+
+### Windows 10 and 11
+
+1. Install the **Microsoft C++ Build Tools** from <https://visualstudio.microsoft.com/visual-cpp-build-tools/>
+   and tick **Desktop development with C++**.
+2. WebView2 is already part of Windows 10 (1803+) and 11. On older systems install the
+   Evergreen runtime from <https://developer.microsoft.com/microsoft-edge/webview2/>.
+3. Install Rust with `rustup-init.exe` from <https://rustup.rs/> (choose the default
+   `x86_64-pc-windows-msvc` toolchain), Node.js from <https://nodejs.org/> and Git from
+   <https://git-scm.com/download/win>.
+4. In PowerShell, from the project folder:
+
+   ```powershell
+   npm.cmd install
+   npm.cmd run tauri dev      # run it
+   npm.cmd run tauri build    # build installers
+   ```
+
+   (`npm.cmd` avoids PowerShell's script policy blocking `npm`; in Command Prompt plain `npm`
+   works.) Installers: `target\release\bundle\msi\*.msi` and `target\release\bundle\nsis\*-setup.exe`.
+
+### macOS (11 Big Sur or newer)
+
+1. Install the Xcode Command Line Tools: `xcode-select --install`.
+2. Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`.
+3. Install Node.js (e.g. `brew install node`, or from <https://nodejs.org/>). Git comes with
+   the Command Line Tools.
+4. From the project folder:
+
+   ```sh
+   npm install
+   npm run tauri dev      # run it
+   npm run tauri build    # build the app and a disk image
+   ```
+
+   Output: `target/release/bundle/macos/GitKraked.app` and `target/release/bundle/dmg/*.dmg`.
+   To build for both Apple silicon and Intel: `rustup target add x86_64-apple-darwin
+   aarch64-apple-darwin`, then `npm run tauri build -- --target universal-apple-darwin`.
+   The build isn't signed, so the first launch needs right-click → Open.
+
+### Linux
+
+1. Install the system libraries:
+
+   ```sh
+   # Debian / Ubuntu (22.04+)
+   sudo apt update
+   sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+     libssl-dev libayatana-appindicator3-dev librsvg2-dev git
+
+   # Fedora
+   sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel \
+     librsvg2-devel libxdo-devel git
+   sudo dnf group install "c-development"
+
+   # Arch
+   sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl appmenu-gtk-module \
+     libappindicator-gtk3 librsvg xdotool git
+   ```
+
+2. Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`, and
+   Node.js 20+ (from your distribution, <https://nodejs.org/> or `nvm`).
+3. From the project folder:
+
+   ```sh
+   npm install
+   npm run tauri dev      # run it
+   npm run tauri build    # build packages
+   ```
+
+   Output: `.deb`, `.rpm` and `.AppImage` under `target/release/bundle/`. To build only one
+   kind, e.g. `npm run tauri build -- --bundles deb`.
+
+### Test it
 
 ```sh
-npm install
-npm run tauri dev
-```
-
-On Windows PowerShell, use `npm.cmd install` and `npm.cmd run tauri dev` if scripts are blocked.
-The first run compiles libgit2 and Tauri, which takes a few minutes.
-
-## Test it
-
-```sh
-cargo test --workspace   # Git logic
+cargo test --workspace   # Git logic (Rust)
 npm test                 # UI helpers
+cargo clippy --workspace --all-targets   # lints
 ```
-
-## Build an installer
-
-```sh
-npm run tauri build
-```
-
-Installers land in `target/release/bundle/`.
 
 ## Layout
 
