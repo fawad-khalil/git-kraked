@@ -59,6 +59,14 @@ worktree. Close a tab with its ×, or middle-click it; the folder itself isn't t
 and which one was open, are remembered, so the app reopens where you left off. Tabs for two
 repositories with the same folder name also show the parent folder, e.g. `api · work`.
 
+## Errors and confirmations
+
+When something fails, or before anything that can't easily be undone (deleting a branch or
+stash, removing a worktree, aborting a merge, merging, cherry-picking), a pop-up explains it
+and offers the buttons for what to do next. Enter picks the highlighted button; Escape or ×
+cancels. Error pop-ups have **Copy details** for pasting the message somewhere. Successes still
+show as a short message at the bottom that fades away.
+
 ## Toolbar
 
 Every toolbar button is an icon; hover one (or tab to it) for a tooltip saying what it does.
