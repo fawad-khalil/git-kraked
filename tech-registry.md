@@ -53,6 +53,7 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
 | `prefs.ts` | `usePref`: small UI settings in localStorage, shared live between components. |
 | `graph/` | Virtualised canvas commit graph, resizable columns, filter. |
 | `changes/` | File lists (list/tree), staging panel, commit panel, diff view (inline/split). |
+| `repos/` | Repository tabs and their labels. |
 | `branches/` | Left panel, branch tree view, branch capsule, worktree dialog. |
 | `sync/` | Fetch, pull, pull-from, push, stash buttons. |
 | `clone/`, `cherry/` | Clone and cherry-pick dialogs. |
@@ -87,6 +88,11 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
   `currentColor` so they follow the theme. Tooltips are CSS (`data-tip` attribute, shown after
   350 ms on hover or keyboard focus), not the browser's `title`, so they appear quickly and
   match the theme. Pull's options (merge/rebase, pull from another branch) live in a popover.
+- **Several repositories.** Open repositories are tabs; the list and the active one are prefs
+  (`repos.open`, `repos.active`) and the active one reopens on start. The backend keeps one
+  loaded history, so switching tabs reloads the repository; each `load` takes a token and drops
+  results of a load that a newer one overtook, so quick tab switches can't mix repositories.
+  `usePref` now also stores arrays and takes update functions.
 - **New repository** uses libgit2's init; the first branch name follows Git's
   `init.defaultBranch`. Picking a folder that's already a repository just opens it.
 - **Filtered history** is computed in the backend over the loaded rows; filtered rows show dots
@@ -109,6 +115,13 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
   mode, centre view) are per machine in localStorage.
 
 ## Change log
+
+### 2026-10-18 — Round 6
+- Repository tabs: open several repositories, switch, close (× or middle-click); remembered
+  across restarts, last one reopened.
+- Opening, cloning and creating repositories show the loader.
+- README: build-from-source steps for Windows, macOS and Linux.
+- Git history started on the owner's PC; work is committed in small pieces from now on.
 
 ### 2026-10-18 — Round 5
 - Toolbar redone as icon buttons with tooltips: Open, New (+: create or clone), Refresh,
