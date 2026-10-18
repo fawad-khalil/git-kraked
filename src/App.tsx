@@ -39,6 +39,7 @@ import { usePref } from "./prefs";
 import { PaneResizer } from "./ui/PaneResizer";
 import { CommitGraph } from "./graph/CommitGraph";
 import { ThemeSwitch } from "./ui/ThemeSwitch";
+import { offerFix } from "./repos/fixes";
 import { DialogHost, chooseDialog, confirmDialog, errorDialog } from "./ui/dialogs";
 import { RepoTabs } from "./repos/RepoTabs";
 import { CherryIcon, FolderOpenIcon, PlusIcon, RefreshIcon } from "./ui/icons";
@@ -262,13 +263,21 @@ function App() {
   async function runTask(label: string, action: () => Promise<string | void>, quick = false) {
     if (!repo) return;
     setBusy(label);
-    try {
-      const message = await action();
-      if (message) showNotice(message);
-    } catch (e) {
-      showNotice(asCommandError(e).message, true);
-      quick = false;
+    // A missing name and email, remote or sign-in gets a pop-up offering the fix; once it's
+    // fixed the operation runs again.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const message = await action();
+        if (message) showNotice(message);
+        break;
+      } catch (e) {
+        quick = false;
+        setBusy(null);
+        if (!(await offerFix(e, repo.path)) || attempt >= 2) break;
+        setBusy(label);
+      }
     }
+    setBusy(label);
     try {
       await load(repo.path, quick);
     } finally {
