@@ -1,74 +1,95 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePref } from "../prefs";
+import { THEMES, ThemeChoice, ThemeInfo, resolveTheme } from "./themes";
 
-export type Theme = "system" | "light" | "dark";
+const PaletteIcon = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M8 1.5a6.5 6.5 0 1 0 0 13c.9 0 1.3-.6 1.3-1.2 0-.8-.6-1.1-.6-1.8 0-.7.6-1.2 1.3-1.2h1.5a3 3 0 0 0 3-3C14.5 4 11.6 1.5 8 1.5z" />
+    <circle cx="4.8" cy="7.2" r=".9" fill="currentColor" />
+    <circle cx="7" cy="4.6" r=".9" fill="currentColor" />
+    <circle cx="10.2" cy="4.9" r=".9" fill="currentColor" />
+  </svg>
+);
 
-const ICON = {
-  width: 14,
-  height: 14,
-  viewBox: "0 0 16 16",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.5,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-  "aria-hidden": true,
-} as const;
+function Swatch({ colors }: { colors: [string, string, string] }) {
+  return (
+    <span className="theme-swatch" aria-hidden>
+      <span style={{ background: colors[0] }} />
+      <span style={{ background: colors[1] }} />
+      <span style={{ background: colors[2] }} />
+    </span>
+  );
+}
 
-const OPTIONS: { value: Theme; title: string; icon: React.ReactNode }[] = [
-  {
-    value: "system",
-    title: "Theme: match your system's light or dark setting",
-    icon: (
-      <svg {...ICON}>
-        <rect x="1.5" y="2.5" width="13" height="9" rx="1.5" />
-        <path d="M5.5 14h5M8 11.5V14" />
-      </svg>
-    ),
-  },
-  {
-    value: "light",
-    title: "Theme: light",
-    icon: (
-      <svg {...ICON}>
-        <circle cx="8" cy="8" r="3" />
-        <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1" />
-      </svg>
-    ),
-  },
-  {
-    value: "dark",
-    title: "Theme: dark",
-    icon: (
-      <svg {...ICON}>
-        <path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z" />
-      </svg>
-    ),
-  },
-];
-
-/** System / Light / Dark, remembered. Sets `data-theme` on the page root, which the CSS reads. */
+/** The toolbar's theme picker: follow the system, or pick a light or dark theme. Remembered. */
 export function ThemeSwitch() {
-  const [theme, setTheme] = usePref<Theme>("theme", "system");
+  const [choice, setChoice] = usePref<ThemeChoice>("theme", "system");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  const current = resolveTheme(choice);
+
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "system") delete root.dataset.theme;
-    else root.dataset.theme = theme;
-  }, [theme]);
+    if (current) root.dataset.theme = current.id;
+    else delete root.dataset.theme;
+  }, [current]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const escape = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("mousedown", close);
+    window.addEventListener("keydown", escape);
+    return () => {
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("keydown", escape);
+    };
+  }, [open]);
+
+  const item = (id: ThemeChoice, label: string, theme: ThemeInfo | null) => (
+    <li
+      key={id}
+      role="menuitemradio"
+      aria-checked={choice === id || (id === "system" && !current)}
+      className={choice === id || (id === "system" && !current) ? "on" : undefined}
+      onClick={() => {
+        setChoice(id);
+        setOpen(false);
+      }}
+    >
+      {theme ? <Swatch colors={theme.swatch} /> : <span className="theme-swatch system" aria-hidden />}
+      <span className="theme-name">{label}</span>
+      <span className="theme-check" aria-hidden>
+        ✓
+      </span>
+    </li>
+  );
+
   return (
-    <span className="segmented theme-switch" role="group" aria-label="Theme">
-      {OPTIONS.map((o) => (
-        <button
-          key={o.value}
-          className={`small${theme === o.value ? " on" : ""}`}
-          aria-pressed={theme === o.value}
-          aria-label={o.title}
-          data-tip={o.title}
-          onClick={() => setTheme(o.value)}
-        >
-          {o.icon}
-        </button>
-      ))}
+    <span className="theme-picker" ref={ref}>
+      <button
+        className={`icon-button${open ? " on" : ""}`}
+        aria-label="Theme"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        data-tip={`Theme: ${current ? current.name : "match system"}`}
+        onClick={() => setOpen(!open)}
+      >
+        <PaletteIcon />
+      </button>
+      {open && (
+        <ul className="menu dropdown theme-menu" role="menu">
+          {item("system", "Match system (Light or Dark)", null)}
+          <li className="menu-heading" role="presentation">
+            Light
+          </li>
+          {THEMES.filter((t) => !t.dark).map((t) => item(t.id, t.name, t))}
+          <li className="menu-heading" role="presentation">
+            Dark
+          </li>
+          {THEMES.filter((t) => t.dark).map((t) => item(t.id, t.name, t))}
+        </ul>
+      )}
     </span>
   );
 }
