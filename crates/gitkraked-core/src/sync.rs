@@ -10,7 +10,7 @@ use std::process::{Command, Stdio};
 use git2::{BranchType, Repository};
 use serde::{Deserialize, Serialize};
 
-use crate::{Result, discover, lossy};
+use crate::{Error, Result, discover, lossy};
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -31,8 +31,29 @@ pub(crate) fn git(repo: &Repository, args: &[&str]) -> Result<String> {
     if output.status.success() {
         Ok(format!("{stdout}{stderr}").trim().to_owned())
     } else {
-        Err(git2::Error::from_str(&explain(&stderr)).into())
+        Err(classify(&stderr))
     }
+}
+
+/// The error for a failed `git` command: the cases the UI can offer a fix for get their own
+/// [`Error`] variant, anything else is [`explain`]ed.
+pub(crate) fn classify(stderr: &str) -> Error {
+    let lower = stderr.to_lowercase();
+    if lower.contains("please tell me who you are") || lower.contains("identity unknown") {
+        Error::NoIdentity
+    } else if is_sign_in_failure(&lower) {
+        Error::SignIn { detail: stderr.trim().to_owned() }
+    } else {
+        git2::Error::from_str(&explain(stderr)).into()
+    }
+}
+
+fn is_sign_in_failure(lower: &str) -> bool {
+    lower.contains("authentication failed")
+        || lower.contains("could not read username")
+        || lower.contains("could not read password")
+        || lower.contains("permission denied")
+        || lower.contains("terminal prompts disabled")
 }
 
 /// A `git` command for `dir` that can't hang on a prompt or flash a console window.
@@ -72,10 +93,7 @@ pub(crate) fn explain(stderr: &str) -> String {
     let detail = stderr.trim();
     if lower.contains("non-fast-forward") || lower.contains("fetch first") || lower.contains("rejected") {
         format!("The remote has commits you don't have yet. Pull first, then push.\n\n{detail}")
-    } else if lower.contains("authentication failed")
-        || lower.contains("could not read username")
-        || lower.contains("permission denied")
-    {
+    } else if is_sign_in_failure(&lower) {
         format!(
             "Git couldn't sign in to the remote. Check that `git push` works in a terminal \
              (it sets up your credentials), then try again.\n\n{detail}"
@@ -91,7 +109,7 @@ pub(crate) fn explain(stderr: &str) -> String {
 pub fn fetch(path: impl AsRef<Path>) -> Result<()> {
     let repo = discover(path.as_ref())?;
     if repo.remotes()?.is_empty() {
-        return Err(git2::Error::from_str("this repository has no remotes to fetch from").into());
+        return Err(Error::NoRemote);
     }
     git(&repo, &["fetch", "--all", "--prune"])?;
     Ok(())
@@ -101,8 +119,11 @@ pub fn fetch(path: impl AsRef<Path>) -> Result<()> {
 /// the user to resolve; a rebase that conflicts is undone, leaving nothing changed.
 pub fn pull(path: impl AsRef<Path>, mode: PullMode) -> Result<String> {
     let repo = discover(path.as_ref())?;
-    let (branch, _) = current_branch(&repo)?;
-    if repo.find_branch(&branch, BranchType::Local)?.upstream().is_err() {
+    if let Some(branch) = unborn_branch(&repo) {
+        return pull_into_empty(&repo, &branch);
+    }
+    let (branch, has_upstream) = current_branch(&repo)?;
+    if !has_upstream && !track_remote_branch(&repo, &branch)? {
         return Err(git2::Error::from_str(&format!(
             "{branch} doesn't track a remote branch yet; push it first to set one up"
         ))
@@ -180,17 +201,56 @@ pub fn push(path: impl AsRef<Path>) -> Result<String> {
     if has_upstream {
         return git(&repo, &["push"]);
     }
+    let remote = default_remote(&repo)?;
+    git(&repo, &["push", "--set-upstream", &remote, &branch])
+}
+
+/// The branch a repository with no commits yet is on, e.g. right after `git init`.
+fn unborn_branch(repo: &Repository) -> Option<String> {
+    match repo.head() {
+        Err(e) if e.code() == git2::ErrorCode::UnbornBranch => {
+            let head = repo.find_reference("HEAD").ok()?;
+            let target = crate::lossy(head.symbolic_target_bytes()?);
+            Some(target.strip_prefix("refs/heads/")?.to_owned())
+        }
+        _ => None,
+    }
+}
+
+/// Pull into a repository with no commits: check out the remote's branch of the same name.
+fn pull_into_empty(repo: &Repository, branch: &str) -> Result<String> {
+    let remote = default_remote(repo)?;
+    git(repo, &["fetch", &remote])?;
+    let tracked = format!("{remote}/{branch}");
+    if repo.find_branch(&tracked, BranchType::Remote).is_err() {
+        return Err(git2::Error::from_str(&format!(
+            "{remote} has no branch called {branch}; commit something and push it, or check out one \
+             of the remote's branches from the left panel"
+        ))
+        .into());
+    }
+    git(repo, &["checkout", "-B", branch, "--track", &tracked])
+}
+
+/// `origin`, else the first remote; [`Error::NoRemote`] when there is none.
+fn default_remote(repo: &Repository) -> Result<String> {
     let remotes = repo.remotes()?;
     let names = remotes.iter().filter_map(|r| r.ok().flatten()).collect::<Vec<&str>>();
-    let remote = if names.contains(&"origin") {
-        "origin"
-    } else {
-        names
-            .first()
-            .copied()
-            .ok_or_else(|| git2::Error::from_str("this repository has no remote to push to"))?
-    };
-    git(&repo, &["push", "--set-upstream", remote, &branch])
+    let name = if names.contains(&"origin") { Some("origin") } else { names.first().copied() };
+    name.map(str::to_owned).ok_or(Error::NoRemote)
+}
+
+/// For a branch with no upstream (e.g. right after adding a remote): fetches the default
+/// remote and, when it has a branch of the same name, sets it as the upstream.
+fn track_remote_branch(repo: &Repository, branch: &str) -> Result<bool> {
+    let remote = default_remote(repo)?;
+    git(repo, &["fetch", &remote])?;
+    let tracked = format!("{remote}/{branch}");
+    if repo.find_branch(&tracked, BranchType::Remote).is_err() {
+        return Ok(false);
+    }
+    repo.find_branch(branch, BranchType::Local)?.set_upstream(Some(&tracked))?;
+    Ok(true)
 }
 
 fn current_branch(repo: &Repository) -> Result<(String, bool)> {
@@ -332,5 +392,39 @@ mod tests {
         // Pulling with merge leaves the conflict for the user to resolve.
         assert!(pull(&mine, PullMode::Merge).is_err());
         assert!(changes::working_status(&mine).unwrap().merging);
+    }
+
+    #[test]
+    fn a_repo_without_remotes_reports_no_remote() {
+        let dir = TempDir::new().unwrap();
+        run(dir.path(), &["init", "-q", "-b", "main"]);
+        configure(dir.path());
+        commit_file(dir.path(), "a.txt", "a\n");
+        assert!(matches!(fetch(dir.path()), Err(Error::NoRemote)));
+        assert!(matches!(pull(dir.path(), PullMode::Merge), Err(Error::NoRemote)));
+        assert!(matches!(push(dir.path()), Err(Error::NoRemote)));
+    }
+
+    #[test]
+    fn pull_after_adding_a_remote_tracks_its_branch() {
+        let (root, _seed, _mine) = setup();
+        let fresh = root.path().join("fresh");
+        run(root.path(), &["init", "-q", "-b", "main", fresh.to_str().unwrap()]);
+        configure(&fresh);
+        crate::remotes::add_remote(&fresh, "origin", root.path().join("remote.git").to_str().unwrap()).unwrap();
+        pull(&fresh, PullMode::Merge).unwrap();
+        assert!(fresh.join("a.txt").exists());
+        let main = branches::list_branches(&fresh).unwrap().local.into_iter().find(|b| b.name == "main").unwrap();
+        assert_eq!(main.upstream.as_deref(), Some("origin/main"));
+    }
+
+    #[test]
+    fn classifies_identity_and_sign_in_failures() {
+        assert!(matches!(classify("*** Please tell me who you are."), Error::NoIdentity));
+        assert!(matches!(
+            classify("fatal: could not read Username for 'https://github.com': terminal prompts disabled"),
+            Error::SignIn { .. }
+        ));
+        assert!(matches!(classify("fatal: something else"), Error::Git(_)));
     }
 }
