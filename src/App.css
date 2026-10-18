@@ -2555,8 +2555,8 @@ button.danger:hover:not(:disabled) {
   flex: none;
 }
 
-.toolbar > .menu-anchor + .theme-picker {
-  margin-left: auto;
+.theme-switch + .theme-picker {
+  margin-left: 4px;
 }
 
 .theme-menu.dropdown {
@@ -2616,11 +2616,6 @@ button.danger:hover:not(:disabled) {
 
 .theme-swatch > span {
   flex: 1;
-}
-
-/* "Match system": half light, half dark. */
-.theme-swatch.system {
-  background: linear-gradient(135deg, #f4f5f8 50%, #1c1e23 50%);
 }
 
 .theme-picker [data-tip]::after {
