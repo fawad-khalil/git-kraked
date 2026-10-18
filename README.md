@@ -51,6 +51,14 @@ Status: v1 feature-complete, early. See [bugs.md](bugs.md) for known problems an
 - **Pull from** brings any other branch into the current one; it suggests the parent branch.
 - Stash (untracked files included), pop, apply and delete stashes.
 
+## Several repositories
+
+Every repository you open gets a tab under the toolbar; click a tab to switch to it. Open more
+with the folder button, the + next to the tabs, the toolbar's + (create or clone) or by opening a
+worktree. Close a tab with its ×, or middle-click it; the folder itself isn't touched. The tabs,
+and which one was open, are remembered, so the app reopens where you left off. Tabs for two
+repositories with the same folder name also show the parent folder, e.g. `api · work`.
+
 ## Toolbar
 
 Every toolbar button is an icon; hover one (or tab to it) for a tooltip saying what it does.
@@ -212,8 +220,8 @@ Planned in this order; open to change. Known problems are in [bugs.md](bugs.md).
 6. **File history and blame**, and search inside diffs.
 7. **Undo** for the last operation (checkout, merge, commit, branch delete) using Git's reflog.
 8. **Keyboard shortcuts** and a command palette.
-9. **Several repositories open at once** in tabs, with a recent-repositories list on the start
-   screen.
+9. **A recent-repositories list** on the start screen, and tabs that keep their scroll
+   position and selection when you switch back.
 10. **Installers and updates:** signed installers for each OS and automatic updates.
 11. **v2:** full WSL support (run Git inside WSL), submodules, Git LFS, hosting integrations
     (pull requests, issues).
