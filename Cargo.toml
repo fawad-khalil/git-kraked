@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["src-tauri", "crates/gitkraked-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+
+# Optimise dependencies (libgit2 included) even in dev builds; loading a large history
+# unoptimised is several times slower. Our own crates stay quick to rebuild.
+[profile.dev.package."*"]
+opt-level = 2
+
+# Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
