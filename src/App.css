@@ -1,0 +1,2152 @@
+/*
+ * Design tokens. Surfaces stack in layers, each one step lighter in dark mode (and set
+ * apart by borders and shadows in light mode):
+ *   --bg       the window behind everything
+ *   --sidebar  the branch list
+ *   --panel    the graph, details and dialogs
+ *   --inset    fields and headers sunk into a panel
+ *   --raised   buttons and other things that can be pressed
+ * The theme follows the system unless data-theme="light" or "dark" is set on <html>
+ * (the toolbar's theme switch does that).
+ */
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color-scheme: light;
+  --bg: #e9ecf1;
+  --sidebar: #f3f5f8;
+  --panel: #ffffff;
+  --inset: #f5f6f9;
+  --raised: #ffffff;
+  --hover: #eef2f9;
+  --border: #dde1e8;
+  --border-strong: #c3c9d4;
+  --text: #1a1d24;
+  --muted: #5d6471;
+  --accent: #2f6fde;
+  --accent-hover: #2560c7;
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 7%, transparent);
+  --on-accent: #ffffff;
+  --error: #c62828;
+  --warning: #c26a00;
+  --shadow-xs: 0 1px 1px rgb(16 24 40 / 0.06), 0 1px 2px rgb(16 24 40 / 0.08);
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.08), 0 2px 6px rgb(16 24 40 / 0.1);
+  --shadow-md: 0 4px 10px rgb(16 24 40 / 0.1), 0 10px 24px rgb(16 24 40 / 0.12);
+  --shadow-lg: 0 12px 28px rgb(16 24 40 / 0.18), 0 24px 60px rgb(16 24 40 / 0.2);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.7);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+  --radius: 7px;
+  --ease: 120ms ease;
+  /* Hollow merge dots in the graph are filled with this. */
+  --graph-bg: var(--panel);
+}
+
+/* Dark: the same layers, lighter as they come forward. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f1013;
+    --sidebar: #16181c;
+    --panel: #1c1e23;
+    --inset: #15171b;
+    --raised: #2a2d34;
+    --hover: #2c3038;
+    --border: #2b2e35;
+    --border-strong: #3d414b;
+    --text: #e8e9ed;
+    --muted: #9ba1ad;
+    --accent: #5a8ef2;
+    --accent-hover: #79a4f6;
+    --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+    --accent-softer: color-mix(in srgb, var(--accent) 11%, transparent);
+    --on-accent: #ffffff;
+    --error: #f07d7d;
+    --warning: #f0a54a;
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45), 0 10px 28px rgb(0 0 0 / 0.35);
+    --shadow-lg: 0 14px 32px rgb(0 0 0 / 0.55), 0 28px 70px rgb(0 0 0 / 0.45);
+    --highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f1013;
+  --sidebar: #16181c;
+  --panel: #1c1e23;
+  --inset: #15171b;
+  --raised: #2a2d34;
+  --hover: #2c3038;
+  --border: #2b2e35;
+  --border-strong: #3d414b;
+  --text: #e8e9ed;
+  --muted: #9ba1ad;
+  --accent: #5a8ef2;
+  --accent-hover: #79a4f6;
+  --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 11%, transparent);
+  --on-accent: #ffffff;
+  --error: #f07d7d;
+  --warning: #f0a54a;
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45), 0 10px 28px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 14px 32px rgb(0 0 0 / 0.55), 0 28px 70px rgb(0 0 0 / 0.45);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* The window itself never scrolls: each panel scrolls on its own. */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex: none;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+button {
+  font: inherit;
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--text);
+  box-shadow: var(--shadow-xs), var(--highlight);
+  cursor: pointer;
+  transition:
+    background var(--ease),
+    border-color var(--ease),
+    box-shadow var(--ease),
+    transform var(--ease);
+}
+
+button:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border-strong));
+  box-shadow: var(--shadow-sm), var(--highlight);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--accent);
+}
+
+.repo-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.empty,
+.error {
+  padding: 24px;
+  color: var(--muted);
+}
+
+.error {
+  flex: none;
+  max-height: 40vh;
+  overflow: auto;
+  color: var(--error);
+}
+
+.error p {
+  margin: 0 0 12px;
+}
+
+.error .hint {
+  color: var(--muted);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.branches {
+  flex: none;
+  width: var(--left-width, 220px);
+  padding: 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.branches h2 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.branches ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.branches li {
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.branches li.current {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.graph {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.graph-header,
+.graph-row {
+  display: grid;
+  grid-template-columns: var(--graph-columns);
+  align-items: center;
+}
+
+.graph-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  height: 28px;
+}
+
+.graph-header > span,
+.graph-row > span {
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.graph-header > span {
+  position: relative;
+}
+
+/* A thin grab strip on a column's edge. */
+.col-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+.col-resizer.right {
+  right: -3px;
+}
+
+.col-resizer.left {
+  left: -3px;
+}
+
+.col-resizer:hover,
+body.resizing .col-resizer:active {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+body.resizing,
+body.resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+.graph-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  font-size: 12px;
+}
+
+.graph-filter input {
+  flex: 1;
+  max-width: 420px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.graph-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.graph-spacer {
+  position: relative;
+}
+
+.graph-canvas {
+  position: absolute;
+  left: 0;
+  pointer-events: none;
+}
+
+.graph-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.graph-row:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.graph-row .message {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.author,
+.when {
+  color: var(--muted);
+}
+
+.ref {
+  flex: none;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 18px;
+  color: white;
+}
+
+.ref-remoteBranch {
+  background: transparent;
+}
+
+.ref-tag {
+  color: var(--text);
+  background: var(--bg);
+}
+
+
+.ref-head {
+  font-weight: 700;
+}
+
+.mono {
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+  color: var(--muted);
+}
+
+/* Layout: branches | graph or diff | details panel */
+
+.center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.side {
+  width: var(--right-width, 360px);
+  flex: none;
+  background: var(--panel);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+button.small {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.pad {
+  padding: 16px;
+}
+
+.error-text {
+  color: var(--error);
+  white-space: pre-wrap;
+}
+
+.selectable {
+  user-select: text;
+}
+
+.wip-bar {
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  text-align: left;
+  padding: 6px 12px;
+  background: var(--panel);
+  font-weight: 600;
+}
+
+.wip-bar.selected,
+.graph-row.selected {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.graph-row {
+  cursor: pointer;
+}
+
+/* Right-hand panels */
+
+.panel {
+  padding: 12px;
+}
+
+.panel h3 {
+  margin: 16px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.commit-summary {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.commit-body {
+  margin: 0 0 8px;
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.commit-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.commit-meta dt {
+  color: var(--muted);
+}
+
+.commit-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.file-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.file-list li:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.file-list li.active {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.file-list .file-path {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.file-list li button {
+  visibility: hidden;
+}
+
+.file-list li:hover button {
+  visibility: visible;
+}
+
+.kind {
+  flex: none;
+  width: 16px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.kind-added,
+.kind-untracked {
+  color: #27ae60;
+}
+
+.kind-deleted {
+  color: #eb5757;
+}
+
+.kind-modified,
+.kind-typeChanged {
+  color: #d4a017;
+}
+
+.kind-renamed,
+.kind-copied {
+  color: #2f80ed;
+}
+
+.kind-conflicted {
+  color: var(--error);
+}
+
+.counts {
+  font-size: 11px;
+  display: flex;
+  gap: 4px;
+}
+
+.plus {
+  color: #27ae60;
+}
+
+.minus {
+  color: #eb5757;
+}
+
+.staging section header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.banner {
+  margin: 0 0 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, #f2994a 20%, transparent);
+}
+
+.commit-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.commit-box input,
+.commit-box textarea {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+/* Diff view */
+
+.diff {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.diff-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.diff-header .file-path {
+  flex: 1;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-body {
+  flex: 1;
+  overflow: auto;
+  user-select: text;
+}
+
+.hunk {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.hunk th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  font-weight: 400;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--panel));
+  color: var(--muted);
+}
+
+.hunk th button {
+  float: right;
+}
+
+.hunk td {
+  padding: 0 8px;
+  vertical-align: top;
+}
+
+.hunk .ln {
+  width: 1%;
+  text-align: right;
+  color: var(--muted);
+  user-select: none;
+}
+
+.hunk .code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.hunk .sign {
+  display: inline-block;
+  width: 1.5ch;
+  user-select: none;
+  color: var(--muted);
+}
+
+.line-added {
+  background: color-mix(in srgb, #27ae60 16%, transparent);
+}
+
+.line-removed {
+  background: color-mix(in srgb, #eb5757 16%, transparent);
+}
+
+.hunk.split-view {
+  table-layout: fixed;
+}
+
+.hunk.split-view .ln-col {
+  width: 6ch;
+}
+
+.hunk .split-left {
+  border-right: 1px solid var(--border);
+}
+
+.hunk .filler {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 4px,
+    color-mix(in srgb, var(--border) 45%, transparent) 4px 5px
+  );
+}
+
+/* Branch sidebar */
+
+.branches header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0 4px;
+}
+
+.branches > .section:first-child > header {
+  margin-top: 0;
+}
+
+.branches header h2 {
+  margin: 0;
+}
+
+.branches li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.branches li:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.branches.busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.branch-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.menu-button {
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+  visibility: hidden;
+}
+
+.branches li:hover .menu-button {
+  visibility: visible;
+}
+
+.branch-input {
+  width: 100%;
+  font: inherit;
+  padding: 2px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.small-print {
+  margin-top: 16px;
+  font-size: 11px;
+}
+
+.menu {
+  position: fixed;
+  z-index: 10;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  min-width: 160px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.2);
+}
+
+.menu li {
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.menu li:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.menu li.danger {
+  color: var(--error);
+}
+
+.commit-actions {
+  margin-top: 12px;
+}
+
+.banner p {
+  margin: 0 0 6px;
+}
+
+.notice {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  max-width: 600px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+
+.notice.is-error {
+  background: var(--error);
+  color: white;
+}
+
+/* Toolbar sync buttons */
+
+.sync-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.split {
+  display: inline-flex;
+}
+
+.split button {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.split select {
+  font: inherit;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.ref-stash {
+  color: var(--text);
+  background: transparent;
+  border-style: dashed;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(520px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.dialog h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  text-transform: none;
+  color: var(--text);
+}
+
+.dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dialog input:not([type]),
+.dialog select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.dialog .row {
+  display: flex;
+  gap: 6px;
+}
+
+.dialog-hint {
+  margin: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.progress-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+
+.progress .dialog-hint {
+  margin-top: 6px;
+}
+
+/* Collapsible sections */
+
+.section > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.panel .section > header {
+  margin: 16px 0 6px;
+}
+
+.section-toggle {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.section-toggle:hover {
+  background: transparent;
+}
+
+.section-toggle h2,
+.section-toggle h3 {
+  margin: 0;
+}
+
+.chevron {
+  flex: none;
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.section.collapsed > header .chevron,
+.chevron.closed {
+  transform: rotate(-90deg);
+}
+
+.panel-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.segmented {
+  display: inline-flex;
+}
+
+.segmented button {
+  border-radius: 0;
+}
+
+.segmented button + button {
+  margin-left: -1px;
+}
+
+.segmented button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.segmented button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.segmented button.on {
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  border-color: var(--accent);
+}
+
+.file-list li.folder {
+  font-weight: 500;
+}
+
+.branches li.missing {
+  opacity: 0.5;
+}
+
+.menu li.muted {
+  cursor: default;
+  font-size: 12px;
+}
+
+.menu li.muted:hover {
+  background: transparent;
+}
+
+.dialog .checkbox {
+  flex-direction: row;
+  color: var(--text);
+  font-size: 13px;
+}
+
+/* Everything clickable shows a pointer; disabled and informational items don't. */
+
+.file-list li,
+.menu li,
+select,
+input[type="checkbox"],
+input[type="radio"],
+label.checkbox,
+.wip-bar {
+  cursor: pointer;
+}
+
+select:disabled,
+input:disabled,
+label.checkbox:has(input:disabled),
+.branches li.missing,
+.branches li:has(.branch-input) {
+  cursor: default;
+}
+
+/* Current branch capsule: [ branch | from parent ↑2 ↓3 ] */
+
+.capsule {
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.capsule-branch {
+  padding: 2px 10px;
+  background: var(--accent);
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.capsule-parent {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px 2px 8px;
+  border: none;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  color: var(--text);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.capsule-parent:hover {
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel));
+}
+
+.capsule-from {
+  color: var(--muted);
+}
+
+.capsule-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.capsule-count.behind,
+.vs-parent .behind {
+  color: #d9822b;
+  font-weight: 600;
+}
+
+/* Centre bar: view toggle + working changes */
+
+.center-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.center-bar .wip-bar {
+  flex: 1;
+  border-bottom: none;
+}
+
+/* Branch tree */
+
+.branch-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px;
+}
+
+.branch-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.branch-tree-root {
+  margin-top: 12px !important;
+}
+
+/* Children hang off a vertical line with an elbow into each one. */
+.branch-tree li li {
+  position: relative;
+  margin-left: 14px;
+  padding-left: 18px;
+  border-left: 1px solid var(--border);
+}
+
+.branch-tree li li:last-child {
+  border-left-color: transparent;
+}
+
+.branch-tree li li::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 16px;
+  height: 17px;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-bottom-left-radius: 6px;
+}
+
+.branch-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.branch-node:hover {
+  border-color: var(--accent);
+}
+
+.branch-node.current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.branch-node.selected {
+  background: color-mix(in srgb, var(--accent) 14%, var(--panel));
+}
+
+.branch-node.remote {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.branch-node-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.vs-parent {
+  display: inline-flex;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* A dropdown shown as just its arrow, next to the button it configures. */
+.split select.arrow-only {
+  width: 26px;
+  appearance: none;
+  color: transparent;
+  cursor: pointer;
+  background: var(--bg)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.5'/%3E%3C/svg%3E")
+    center / 10px 6px no-repeat;
+}
+
+.split select.arrow-only option {
+  color: var(--text);
+}
+
+/* Drag-to-merge: the current branch lights up as the place to drop. */
+.branches li.drop-target {
+  flex-wrap: wrap;
+  outline: 2px dashed var(--accent);
+  outline-offset: -2px;
+}
+
+.branches li.drop-hover {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.drop-label {
+  order: 10;
+  flex-basis: 100%;
+  font-size: 11px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.branches li[draggable="true"] {
+  cursor: grab;
+}
+
+/* A remote's own list inside Remotes. */
+.branches .section.nested {
+  margin-left: 8px;
+}
+
+.branches .section.nested > header {
+  margin: 6px 0 2px;
+}
+
+.branches .section.nested h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.banner-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Cherry-pick dialog */
+
+.dialog.wide {
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+}
+
+.dialog > input[type="search"] {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pick-list {
+  flex: 1;
+  min-height: 120px;
+  max-height: 50vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.dialog label.pick-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 120px) 90px 64px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pick-row:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.pick-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick-row.applied .summary {
+  color: var(--muted);
+}
+
+.tag {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--muted) 20%, transparent);
+  font-size: 11px;
+}
+
+.dialog-actions .grow {
+  flex: 1;
+}
+
+/* The border between panes doubles as a drag handle. */
+.pane-resizer {
+  flex: none;
+  width: 5px;
+  margin: 0 -2px;
+  position: relative;
+  z-index: 2;
+  cursor: col-resize;
+  background: linear-gradient(var(--border), var(--border)) center / 1px 100% no-repeat;
+}
+
+.pane-resizer:hover {
+  background: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* ───────────── Layers, depth and states (round 4) ───────────── */
+
+/* The toolbar sits above the panes and casts a shadow onto them. */
+.toolbar {
+  position: relative;
+  z-index: 3;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar .sync-buttons {
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.theme-switch {
+  margin-left: 4px;
+}
+
+.body {
+  background: var(--bg);
+}
+
+.branches {
+  background: var(--sidebar);
+}
+
+.center {
+  background: var(--panel);
+}
+
+.side {
+  background: var(--panel);
+}
+
+/* Primary buttons are filled; everything else is a raised neutral. */
+button.primary {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 88%, white), var(--accent));
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: var(--shadow-md);
+}
+
+button:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+button.small {
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+/* Icon-like buttons inside lists stay flat until hovered. */
+.menu-button,
+.section-toggle,
+.capsule-parent,
+.wip-bar {
+  box-shadow: none;
+}
+
+.menu-button {
+  border-radius: 5px;
+  color: var(--muted);
+}
+
+.menu-button:hover:not(:disabled) {
+  background: var(--raised);
+  border-color: transparent;
+  color: var(--text);
+  box-shadow: var(--shadow-xs);
+}
+
+.section-toggle:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.section-toggle:hover h2,
+.section-toggle:hover h3,
+.section-toggle:hover .chevron {
+  color: var(--text);
+}
+
+/* Segmented controls: a sunken track with the chosen option raised out of it. */
+.segmented {
+  padding: 2px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--inset);
+}
+
+.segmented button,
+.segmented button:first-child,
+.segmented button:last-child {
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.segmented button:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--text);
+}
+
+.segmented button.on,
+.segmented button.on:hover:not(:disabled) {
+  background: var(--raised);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-xs);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Fields are sunk into their panel. */
+input[type="search"],
+input:not([type]),
+input[type="text"],
+textarea,
+select,
+.graph-filter input,
+.commit-box input,
+.commit-box textarea,
+.branch-input,
+.dialog input:not([type]),
+.dialog select,
+.dialog > input[type="search"] {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--inset);
+  color: var(--text);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.06);
+  transition:
+    border-color var(--ease),
+    box-shadow var(--ease),
+    background var(--ease);
+}
+
+input:hover:not(:disabled):not(:focus),
+textarea:hover:not(:disabled):not(:focus) {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border-strong));
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--panel);
+  box-shadow: var(--focus-ring);
+}
+
+.split select {
+  border-color: var(--border-strong);
+  background-color: var(--raised);
+  box-shadow: var(--shadow-xs);
+}
+
+.split select:hover:not(:disabled) {
+  background-color: var(--hover);
+}
+
+/* Headers inside panels. */
+.graph-filter,
+.graph-header,
+.center-bar,
+.diff-header {
+  background: var(--panel);
+}
+
+.graph-header {
+  background: var(--inset);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.center-bar {
+  gap: 10px;
+  padding: 6px 8px;
+}
+
+/* Rows: a soft hover, and a selected row marked with an accent edge. */
+.graph-row {
+  transition: background var(--ease);
+}
+
+.graph-row:hover {
+  background: var(--accent-softer);
+}
+
+.graph-row.selected,
+.wip-bar.selected {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* The uncommitted-changes row at the top of the graph. */
+.wip-row {
+  font-weight: 600;
+  border-bottom: 1px dashed var(--border-strong);
+}
+
+.wip-row.is-clean {
+  font-weight: 400;
+}
+
+.wip-row.is-clean .summary {
+  color: var(--muted);
+}
+
+.ref-wip {
+  color: var(--accent);
+  background: var(--accent-softer);
+  border: 1px dashed var(--accent);
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+}
+
+.ref {
+  border-radius: 10px;
+  line-height: 17px;
+  font-weight: 500;
+}
+
+.ref-tag {
+  background: var(--inset);
+  border-color: var(--border-strong);
+}
+
+.ref-tag::before {
+  content: "◆ ";
+  color: var(--warning);
+  font-size: 9px;
+}
+
+/* Sidebar lists. */
+.branches h2 {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.branches li {
+  padding: 4px 6px 4px 8px;
+  border-radius: 6px;
+  transition: background var(--ease);
+}
+
+.branches li:hover {
+  background: var(--hover);
+}
+
+.branches li.current {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.branches .section + .section {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.branches .section.nested {
+  border-top: none;
+  padding-top: 0;
+}
+
+.section-filter {
+  width: 100%;
+  margin: 2px 0 6px;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.tag-icon {
+  flex: none;
+  font-size: 9px;
+  color: var(--warning);
+}
+
+.file-list li {
+  transition: background var(--ease);
+}
+
+.file-list li:hover {
+  background: var(--hover);
+}
+
+.file-list li.active {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+/* Floating layers: menus, dialogs, toasts. */
+.menu {
+  padding: 5px;
+  border-color: var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  animation: pop-in 90ms ease-out;
+}
+
+.menu li {
+  border-radius: 6px;
+}
+
+.menu li:hover {
+  background: var(--accent-soft);
+}
+
+.overlay {
+  background: rgb(10 12 16 / 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.dialog {
+  border-radius: 12px;
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  animation: pop-in 120ms ease-out;
+}
+
+.notice {
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  animation: rise-in 160ms ease-out;
+}
+
+.branch-node {
+  background: var(--raised);
+  box-shadow: var(--shadow-xs);
+  transition:
+    border-color var(--ease),
+    box-shadow var(--ease);
+}
+
+.branch-node:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.capsule {
+  box-shadow: var(--shadow-xs);
+}
+
+.capsule-parent:hover:not(:disabled) {
+  border-color: transparent;
+}
+
+.banner {
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+}
+
+.progress-track {
+  background: var(--inset);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
+/* Loader shown while a Git operation runs: a bar along the top and a status pill. It
+   blocks clicks straight away but only dims the window if the wait gets noticeable. */
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  cursor: progress;
+  animation: dim-in 200ms ease 250ms both;
+}
+
+.loader-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  overflow: hidden;
+  background: var(--accent-soft);
+}
+
+.loader-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  background: var(--accent);
+  border-radius: 2px;
+  animation: slide 1.1s ease-in-out infinite;
+}
+
+.loader-pill {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--panel);
+  box-shadow: var(--shadow-md);
+  font-weight: 500;
+  animation: rise-in 160ms ease-out 150ms both;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--accent-soft);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes slide {
+  from {
+    left: -35%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dim-in {
+  from {
+    background: transparent;
+  }
+  to {
+    background: color-mix(in srgb, var(--bg) 35%, transparent);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+.theme-switch button {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 7px;
+}
+
+.toolbar {
+  gap: 8px;
+}
+
+.toolbar > button,
+.toolbar .sync-buttons > button,
+.toolbar .split > button {
+  padding: 5px 10px;
+}
+
+.toolbar .sync-buttons {
+  padding-left: 8px;
+}
+
+.repo-name {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+/* One row: the repository name and branch capsule shrink first when space runs out. */
+.toolbar {
+  flex-wrap: nowrap;
+}
+
+.toolbar > button,
+.toolbar .sync-buttons,
+.theme-switch {
+  flex: none;
+}
+
+.repo-name {
+  overflow: hidden;
+}
+
+/* ───────────── Icon toolbar (round 5) ───────────── */
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  position: relative;
+}
+
+.toolbar > .icon-button,
+.toolbar .sync-buttons > .icon-button,
+.toolbar .split > .icon-button {
+  padding: 0;
+}
+
+.icon-button.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.toolbar .sync-buttons {
+  align-items: center;
+  gap: 6px;
+  padding-left: 0;
+  border-left: none;
+}
+
+.toolbar-divider {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--border-strong);
+  margin: 0 2px;
+}
+
+/* A main button with a narrow arrow button glued to its right. */
+.split {
+  position: relative;
+}
+
+.split > .icon-button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.split > .icon-button.arrow {
+  width: 20px;
+  margin-left: -1px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.menu-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.menu.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  white-space: nowrap;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 260px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow-lg);
+  animation: pop-in 90ms ease-out;
+}
+
+.popover-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.popover-label + .segmented {
+  align-self: flex-start;
+}
+
+.popover select {
+  width: 100%;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.popover .segmented + .popover-label {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+/* Tooltips: any element with data-tip shows it below itself on hover or keyboard focus. */
+[data-tip] {
+  position: relative;
+}
+
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 40;
+  width: max-content;
+  max-width: 260px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--panel);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -3px);
+  transition:
+    opacity 100ms ease,
+    transform 100ms ease;
+}
+
+[data-tip]:hover::after,
+[data-tip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition-delay: 350ms;
+}
+
+/* The first buttons sit at the window's edge: align their tips left so they stay on screen. */
+.toolbar > [data-tip]:first-child::after,
+.menu-anchor > [data-tip]::after {
+  left: 0;
+  transform: translate(0, -3px);
+}
+
+.toolbar > [data-tip]:first-child:hover::after,
+.menu-anchor > [data-tip]:hover::after {
+  transform: translate(0, 0);
+}
+
+/* A tip shouldn't cover the menu it opened. */
+[data-tip][aria-expanded="true"]::after {
+  display: none;
+}
+
+/* Start screen */
+.welcome {
+  margin: auto;
+  padding: 32px;
+  text-align: center;
+}
+
+.welcome h1 {
+  margin: 0 0 6px;
+  font-size: 26px;
+}
+
+.welcome-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.welcome-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+}
+
+/* The theme switch is at the right edge: its tips open leftwards. */
+.theme-switch [data-tip]::after {
+  left: auto;
+  right: 0;
+  transform: translate(0, -3px);
+}
+
+.theme-switch [data-tip]:hover::after {
+  transform: translate(0, 0);
+}
+
+.branches .no-match {
+  margin: 2px 0;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: default;
+}
+
+.branches li.no-match:hover {
+  background: transparent;
+}
+
+/* The repository name and the theme switch sit together at the right end. */
+.toolbar .repo-name {
+  margin-left: auto;
+}
+
+.toolbar .theme-switch {
+  margin-left: 0;
+}
+
+.toolbar > .menu-anchor + .theme-switch {
+  margin-left: auto;
+}
