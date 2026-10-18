@@ -350,12 +350,7 @@ pub fn commit(path: impl AsRef<Path>, message: &str, amend: bool) -> Result<Stri
     if message.is_empty() {
         return Err(git2::Error::from_str("write a commit message first").into());
     }
-    let signature = repo.signature().map_err(|_| {
-        git2::Error::from_str(
-            "Git doesn't know your name and email yet. Run: git config --global user.name \"Your Name\" \
-             and git config --global user.email you@example.com",
-        )
-    })?;
+    let signature = crate::identity::signature(&repo)?;
     if !amend && !merging && staged_diff(&repo, None)?.deltas().len() == 0 {
         return Err(git2::Error::from_str("nothing is staged to commit").into());
     }

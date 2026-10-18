@@ -9,6 +9,8 @@ pub mod changes;
 pub mod cherry;
 pub mod clone;
 pub mod graph;
+pub mod identity;
+pub mod remotes;
 pub mod stash;
 pub mod sync;
 pub mod tags;
@@ -28,6 +30,16 @@ pub enum Error {
     /// happens when opening a repo inside WSL from Windows. [`trust_repo`] resolves it.
     #[error("Git won't open '{path}' because it belongs to another user (common for WSL repos)")]
     NotOwned { path: String },
+    /// Git doesn't know the user's name and email, so it can't record who made a commit.
+    /// [`identity::set_identity`] resolves it.
+    #[error("Git doesn't know your name and email yet, and it records them in every commit")]
+    NoIdentity,
+    /// Fetch, pull or push in a repository with no remote. [`remotes::add_remote`] resolves it.
+    #[error("this repository has no remote yet, so there's nothing to fetch from or push to")]
+    NoRemote,
+    /// Git couldn't sign in to the remote; `detail` is git's own message.
+    #[error("Git couldn't sign in to the remote.\n\n{detail}")]
+    SignIn { detail: String },
     #[error("{0}")]
     Git(#[from] git2::Error),
 }
@@ -90,16 +102,21 @@ pub(crate) fn discover(path: &Path) -> Result<Repository> {
 /// Marks the repository containing `path` as safe by adding it to `safe.directory` in the
 /// user's global Git config, the same fix `git` itself suggests. Returns the value added.
 pub fn trust_repo(path: impl AsRef<Path>) -> Result<String> {
-    let config_path = match git2::Config::find_global() {
-        Ok(p) => p,
-        // No ~/.gitconfig yet; create it where git would look for it.
-        Err(_) => home_dir()
-            .ok_or_else(|| git2::Error::from_str("could not find your home folder"))?
-            .join(".gitconfig"),
-    };
+    let config_path = global_config_path()?;
     let value = safe_directory_value(path.as_ref())?;
     add_safe_directory(&config_path, &value)?;
     Ok(value)
+}
+
+/// The user's global Git config file, `~/.gitconfig` when there isn't one yet.
+pub(crate) fn global_config_path() -> Result<PathBuf> {
+    match git2::Config::find_global() {
+        Ok(p) => Ok(p),
+        // No ~/.gitconfig yet; create it where git would look for it.
+        Err(_) => Ok(home_dir()
+            .ok_or_else(|| git2::Error::from_str("could not find your home folder"))?
+            .join(".gitconfig")),
+    }
 }
 
 fn home_dir() -> Option<PathBuf> {

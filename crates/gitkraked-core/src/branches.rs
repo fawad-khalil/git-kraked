@@ -549,7 +549,7 @@ pub fn merge_branch(path: impl AsRef<Path>, name: &str) -> Result<MergeResult> {
         return Ok(MergeResult::Conflicts);
     }
 
-    let signature = repo.signature()?;
+    let signature = crate::identity::signature(&repo)?;
     let tree = repo.find_tree(index.write_tree()?)?;
     let ours = head.peel_to_commit()?;
     let theirs_commit = repo.find_commit(theirs.id())?;

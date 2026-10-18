@@ -38,7 +38,7 @@ pub fn list_stashes(path: impl AsRef<Path>) -> Result<Vec<StashEntry>> {
 /// Stashes all uncommitted changes, untracked files included, and cleans the working tree.
 pub fn stash_save(path: impl AsRef<Path>, message: Option<&str>) -> Result<()> {
     let mut repo = discover(path.as_ref())?;
-    let signature = repo.signature()?;
+    let signature = crate::identity::signature(&repo)?;
     let message = message.map(str::trim).filter(|m| !m.is_empty());
     repo.stash_save2(&signature, message, Some(StashFlags::INCLUDE_UNTRACKED))
         .map_err(|e| match e.code() {
