@@ -1,5 +1,5 @@
+import { confirmDialog, errorDialog } from "../ui/dialogs";
 import { useState } from "react";
-import { ask } from "@tauri-apps/plugin-dialog";
 import {
   WorkingStatus,
   abortMerge,
@@ -33,17 +33,15 @@ export function StagingPanel({ repoPath, status, headCommit, activeFile, onOpenF
   const [description, setDescription] = useState("");
   const [amend, setAmend] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function run(action: () => Promise<unknown>, committed = false) {
     setBusy(true);
-    setError(null);
     try {
       await action();
       onChanged(committed);
       return true;
     } catch (e) {
-      setError(asCommandError(e).message);
+      errorDialog(asCommandError(e).message, "That didn't work");
       return false;
     } finally {
       setBusy(false);
@@ -65,9 +63,12 @@ export function StagingPanel({ repoPath, status, headCommit, activeFile, onOpenF
   }
 
   async function confirmAbort() {
-    const sure = await ask("Abort the merge? Files go back to how they were before it, and any conflict fixes are lost.", {
-      title: "Abort merge",
-      kind: "warning",
+    const sure = await confirmDialog({
+      title: "Abort the merge?",
+      message: "Files go back to how they were before the merge, and any conflict fixes are lost.",
+      confirmLabel: "Abort merge",
+      cancelLabel: "Keep merging",
+      danger: true,
     });
     if (sure) run(() => abortMerge(repoPath), true);
   }
@@ -86,9 +87,12 @@ export function StagingPanel({ repoPath, status, headCommit, activeFile, onOpenF
   const active = (staged: boolean) => (activeFile?.staged === staged ? activeFile.path : undefined);
 
   async function confirmAbortPick() {
-    const sure = await ask("Abort the cherry-pick? The branch goes back to how it was before it started.", {
-      title: "Abort cherry-pick",
-      kind: "warning",
+    const sure = await confirmDialog({
+      title: "Abort the cherry-pick?",
+      message: "The branch goes back to how it was before the cherry-pick started.",
+      confirmLabel: "Abort cherry-pick",
+      cancelLabel: "Keep going",
+      danger: true,
     });
     if (sure) run(() => abortCherryPick(repoPath), true);
   }
@@ -208,7 +212,6 @@ export function StagingPanel({ repoPath, status, headCommit, activeFile, onOpenF
           <input type="checkbox" checked={amend} disabled={!headCommit} onChange={(e) => toggleAmend(e.target.checked)} />
           Amend the last commit
         </label>
-        {error && <p className="error-text">{error}</p>}
         <button className="primary" disabled={!canCommit} onClick={doCommit}>
           {amend ? "Amend commit" : status.staged.length > 0 ? `Commit ${status.staged.length} ${status.staged.length === 1 ? "file" : "files"}` : "Commit"}
         </button>
