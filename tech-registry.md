@@ -43,6 +43,8 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
 | `clone.rs` | `git clone --progress`, progress parsing, cancellation. |
 | `cherry.rs` | Pick candidates (`git cherry`), cherry-pick, continue, abort. |
 | `worktrees.rs` | List/add/remove/prune worktrees via `git worktree`. |
+| `identity.rs` | Read and save `user.name` / `user.email` (repository or global); commit signatures. |
+| `remotes.rs` | Add a remote. |
 
 ### UI (`src/`)
 
@@ -53,7 +55,7 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
 | `prefs.ts` | `usePref`: small UI settings in localStorage, shared live between components. |
 | `graph/` | Virtualised canvas commit graph, resizable columns, filter. |
 | `changes/` | File lists (list/tree), staging panel, commit panel, diff view (inline/split). |
-| `repos/` | Repository tabs and their labels. |
+| `repos/` | Repository tabs and their labels; `fixes` (pop-ups that fix a missing remote, sign-in or name and email). |
 | `branches/` | Left panel, branch tree view, branch capsule, worktree dialog. |
 | `sync/` | Fetch, pull, pull-from, push, stash buttons. |
 | `clone/`, `cherry/` | Clone and cherry-pick dialogs. |
@@ -93,6 +95,14 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
   `currentColor` so they follow the theme. Tooltips are CSS (`data-tip` attribute, shown after
   350 ms on hover or keyboard focus), not the browser's `title`, so they appear quickly and
   match the theme. Pull's options (merge/rebase, pull from another branch) live in a popover.
+- **Fixable errors.** The core returns `NoIdentity`, `NoRemote` and `SignIn` as their own
+  `Error` variants (from libgit2's missing signature, an empty remote list, or `git`'s stderr
+  via `sync::classify`), sent to the UI as `kind`s. `repos/fixes.ts` `offerFix` shows the
+  pop-up with the fix, and `runTask` and the staging panel retry the operation when it's
+  fixed. Sign-in is not handled in the app: `git` runs with `GIT_TERMINAL_PROMPT=0`, so the fix
+  is a terminal (`open_terminal`: Windows Terminal or cmd, Terminal.app, the first Linux
+  terminal found) where `git` can prompt once and its credential helper remembers it.
+  `formDialog` in `ui/dialogs.tsx` adds text boxes and radio choices to the pop-ups.
 - **Several repositories.** Open repositories are tabs; the list and the active one are prefs
   (`repos.open`, `repos.active`) and the active one reopens on start. The backend keeps one
   loaded history, so switching tabs reloads the repository; each `load` takes a token and drops
@@ -124,6 +134,14 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
   mode, centre view) are per machine in localStorage.
 
 ## Change log
+
+### 2026-10-18 — Round 9
+- No remote: Fetch, Pull and Push offer "Add a remote…"; the Remotes section always shows,
+  with an Add button. Pull in an empty repository checks out the remote's matching branch, and
+  pull on a branch without an upstream tracks the remote's same-named branch.
+- Sign-in failures offer Open terminal (in the repository) and Try again.
+- Missing name and email: commit, merge and stash offer to set them for all repositories or
+  this one only. The commit box shows who you commit as, with Change.
 
 ### 2026-10-18 — Round 8
 - More themes: Lavender and Solarized Light for light mode; Solarized Dark, Nord and Dracula
