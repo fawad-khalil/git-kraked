@@ -67,6 +67,24 @@ and offers the buttons for what to do next. Enter picks the highlighted button; 
 cancels. Error pop-ups have **Copy details** for pasting the message somewhere. Successes still
 show as a short message at the bottom that fades away.
 
+## Remote, sign-in, and your name and email
+
+Three common set-up gaps get a pop-up with the fix instead of a dead end. Once fixed, the
+operation you were doing runs again by itself.
+
+- **No remote yet** (a repository you just created): Fetch, Pull and Push offer **Add a
+  remote…**. Paste the URL from GitHub (HTTPS or SSH) and keep the name `origin`. You can also
+  add one any time with **Add** on the Remotes header. Pull in a new, empty repository then
+  checks out the remote's branch of the same name.
+- **Not signed in to the remote:** Fetch, Pull and Push use your own `git`, so whatever sign-in
+  Git already has (Git Credential Manager, the macOS keychain, SSH keys) just works. If Git
+  can't sign in, the pop-up offers **Open terminal** (in the repository) where you run
+  `git fetch` once so Git can ask for your sign-in and remember it, then **Try again**.
+- **Git doesn't know your name and email:** committing, merging or stashing offers **Set name
+  and email…**, for all your repositories (`git config --global`) or this repository only
+  (`git config`, e.g. a work email). Under the Commit button, "As …" shows who you commit as;
+  **Change** edits it.
+
 ## Toolbar
 
 Every toolbar button is an icon; hover one (or tab to it) for a tooltip saying what it does.
