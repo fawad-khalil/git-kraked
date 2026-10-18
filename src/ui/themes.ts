@@ -7,8 +7,8 @@ export interface ThemeInfo {
   swatch: [string, string, string];
 }
 
-/** "system" follows the OS light/dark setting with the Light and Dark themes. */
-export type ThemeChoice = "system" | string;
+/** The toolbar toggle. "system" switches between the light and dark theme with the OS. */
+export type ThemeMode = "system" | "light" | "dark";
 
 export const THEMES: ThemeInfo[] = [
   { id: "light", name: "Light", dark: false, swatch: ["#e9ecf1", "#ffffff", "#2f6fde"] },
@@ -20,7 +20,16 @@ export const THEMES: ThemeInfo[] = [
   { id: "dracula", name: "Dracula", dark: true, swatch: ["#1e1f29", "#282a36", "#bd93f9"] },
 ];
 
-/** The theme to apply for a saved choice; unknown ids fall back to following the system. */
-export function resolveTheme(choice: ThemeChoice): ThemeInfo | null {
-  return THEMES.find((t) => t.id === choice) ?? null;
+/** The saved light or dark theme; an unknown id (or one of the wrong kind) gives the default. */
+export function pickTheme(id: string, dark: boolean): ThemeInfo {
+  return (
+    THEMES.find((t) => t.id === id && t.dark === dark) ??
+    THEMES.find((t) => t.id === (dark ? "dark" : "light"))!
+  );
+}
+
+/** The theme to show for the toggle, the chosen light and dark themes, and the OS setting. */
+export function appliedTheme(mode: ThemeMode, lightId: string, darkId: string, systemDark: boolean): ThemeInfo {
+  const dark = mode === "dark" || (mode !== "light" && systemDark);
+  return pickTheme(dark ? darkId : lightId, dark);
 }
