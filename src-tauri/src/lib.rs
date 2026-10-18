@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use gitkraked_core::{Error, History, HistoryRow, RepoSummary, branches, changes, cherry, clone, stash, sync, tags, worktrees};
+use gitkraked_core::{Error, History, HistoryRow, RepoSummary, branches, changes, cherry, clone, identity, remotes, stash, sync, tags, worktrees};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
@@ -14,6 +14,9 @@ const HISTORY_LIMIT: usize = 200_000;
 #[serde(tag = "kind", rename_all = "camelCase")]
 enum CommandError {
     NotOwned { message: String, path: String },
+    NoIdentity { message: String },
+    NoRemote { message: String },
+    SignIn { message: String },
     Other { message: String },
 }
 
@@ -22,6 +25,9 @@ impl From<Error> for CommandError {
         let message = e.to_string();
         match e {
             Error::NotOwned { path } => CommandError::NotOwned { message, path },
+            Error::NoIdentity => CommandError::NoIdentity { message },
+            Error::NoRemote => CommandError::NoRemote { message },
+            Error::SignIn { .. } => CommandError::SignIn { message },
             Error::Git(_) => CommandError::Other { message },
         }
     }
@@ -303,6 +309,55 @@ fn trust_repo(path: String) -> CommandResult<String> {
     Ok(gitkraked_core::trust_repo(path)?)
 }
 
+#[tauri::command]
+fn get_identity(path: String) -> CommandResult<identity::Identity> {
+    Ok(identity::identity(path)?)
+}
+
+#[tauri::command]
+fn set_identity(path: String, name: String, email: String, scope: identity::IdentityScope) -> CommandResult<()> {
+    Ok(identity::set_identity(path, &name, &email, scope)?)
+}
+
+#[tauri::command]
+fn add_remote(path: String, name: String, url: String) -> CommandResult<()> {
+    Ok(remotes::add_remote(path, &name, &url)?)
+}
+
+/// Opens the system terminal in `path`, e.g. so `git push` can ask for a sign-in once.
+#[tauri::command]
+fn open_terminal(path: String) -> CommandResult<()> {
+    use std::process::Command;
+    let failed = |e: std::io::Error| CommandError::Other { message: format!("couldn't open a terminal: {e}") };
+    #[cfg(windows)]
+    {
+        // Windows Terminal when it's installed, otherwise a classic console window.
+        if Command::new("wt.exe").args(["-d", &path]).spawn().is_ok() {
+            return Ok(());
+        }
+        Command::new("cmd").args(["/C", "start", "", "cmd", "/K"]).current_dir(&path).spawn().map_err(failed)?;
+        Ok(())
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open").args(["-a", "Terminal", &path]).spawn().map_err(failed)?;
+        Ok(())
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
+    {
+        // Each opens in its current directory.
+        let candidates = ["x-terminal-emulator", "gnome-terminal", "konsole", "xfce4-terminal", "alacritty", "kitty", "xterm"];
+        let mut last = None;
+        for program in candidates {
+            match Command::new(program).current_dir(&path).spawn() {
+                Ok(_) => return Ok(()),
+                Err(e) => last = Some(e),
+            }
+        }
+        Err(failed(last.unwrap_or_else(|| std::io::Error::other("no terminal found"))))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -322,6 +377,10 @@ pub fn run() {
             continue_cherry_pick,
             abort_cherry_pick,
             trust_repo,
+            get_identity,
+            set_identity,
+            add_remote,
+            open_terminal,
             commit_details,
             commit_file_diff,
             working_status,
