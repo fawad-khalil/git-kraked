@@ -44,7 +44,7 @@
 
 /* Dark: the same layers, lighter as they come forward. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme]) {
     color-scheme: dark;
     --bg: #0f1013;
     --sidebar: #16181c;
@@ -1120,7 +1120,7 @@ label.checkbox:has(input:disabled),
 .capsule-branch {
   padding: 2px 10px;
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1259,7 +1259,7 @@ label.checkbox:has(input:disabled),
   padding: 0 6px;
   border-radius: 8px;
   background: var(--accent);
-  color: white;
+  color: var(--on-accent);
   font-size: 10px;
   text-transform: uppercase;
 }
@@ -2383,7 +2383,7 @@ button.danger:hover:not(:disabled) {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme]) {
     --danger-bg: #c23b3b;
   }
 }
@@ -2404,4 +2404,231 @@ button.danger {
 
 button.danger:hover:not(:disabled) {
   background: color-mix(in srgb, var(--danger-bg) 88%, black);
+}
+
+/* ───────────── Extra themes (picked in the toolbar's theme menu) ───────────── */
+
+/* Very light purple, inspired by soft editor themes. */
+:root[data-theme="lavender"] {
+  color-scheme: light;
+  --bg: #ebe7f6;
+  --sidebar: #f4f1fb;
+  --panel: #fcfbff;
+  --inset: #f3f0fa;
+  --raised: #ffffff;
+  --hover: #efe9fa;
+  --border: #e2dbf0;
+  --border-strong: #cbc1e2;
+  --text: #2b2341;
+  --muted: #6c6487;
+  --accent: #7c4dcc;
+  --accent-hover: #6a3bb8;
+  --on-accent: #ffffff;
+  --error: #c2334d;
+  --warning: #b26a00;
+  --danger-bg: #c2334d;
+  --shadow-xs: 0 1px 1px rgb(16 24 40 / 0.06), 0 1px 2px rgb(16 24 40 / 0.08);
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.08), 0 2px 6px rgb(16 24 40 / 0.1);
+  --shadow-md: 0 4px 10px rgb(16 24 40 / 0.1), 0 10px 24px rgb(16 24 40 / 0.12);
+  --shadow-lg: 0 12px 28px rgb(16 24 40 / 0.18), 0 24px 60px rgb(16 24 40 / 0.2);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.7);
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+/* Ethan Schoonover's Solarized palette, light. */
+:root[data-theme="solarized-light"] {
+  color-scheme: light;
+  --bg: #eee8d5;
+  --sidebar: #f5efdc;
+  --panel: #fdf6e3;
+  --inset: #f6f0dd;
+  --raised: #fffbef;
+  --hover: #efe8d2;
+  --border: #e4ddc8;
+  --border-strong: #d0c8ae;
+  --text: #2e4249;
+  --muted: #657b83;
+  --accent: #268bd2;
+  --accent-hover: #1d73b0;
+  --on-accent: #ffffff;
+  --error: #dc322f;
+  --warning: #b58900;
+  --danger-bg: #cb2f2c;
+  --shadow-xs: 0 1px 1px rgb(16 24 40 / 0.06), 0 1px 2px rgb(16 24 40 / 0.08);
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.08), 0 2px 6px rgb(16 24 40 / 0.1);
+  --shadow-md: 0 4px 10px rgb(16 24 40 / 0.1), 0 10px 24px rgb(16 24 40 / 0.12);
+  --shadow-lg: 0 12px 28px rgb(16 24 40 / 0.18), 0 24px 60px rgb(16 24 40 / 0.2);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.7);
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+/* Solarized, dark. */
+:root[data-theme="solarized-dark"] {
+  color-scheme: dark;
+  --bg: #00212b;
+  --sidebar: #00262f;
+  --panel: #002b36;
+  --inset: #00242e;
+  --raised: #0b3b47;
+  --hover: #0e4452;
+  --border: #0b3a46;
+  --border-strong: #1d5260;
+  --text: #dfe3d8;
+  --muted: #93a1a1;
+  --accent: #2aa1e8;
+  --accent-hover: #52b4ee;
+  --on-accent: #ffffff;
+  --error: #f0605d;
+  --warning: #d4a42a;
+  --danger-bg: #c9302c;
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45), 0 10px 28px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 14px 32px rgb(0 0 0 / 0.55), 0 28px 70px rgb(0 0 0 / 0.45);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 11%, transparent);
+}
+
+/* Arctic Ice Studio's Nord palette. */
+:root[data-theme="nord"] {
+  color-scheme: dark;
+  --bg: #242933;
+  --sidebar: #2a2f3a;
+  --panel: #2e3440;
+  --inset: #292e39;
+  --raised: #3b4252;
+  --hover: #434c5e;
+  --border: #3b4252;
+  --border-strong: #4c566a;
+  --text: #eceff4;
+  --muted: #a7b0c0;
+  --accent: #88c0d0;
+  --accent-hover: #8fbcbb;
+  --on-accent: #2e3440;
+  --error: #d58089;
+  --warning: #ebcb8b;
+  --danger-bg: #bf616a;
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45), 0 10px 28px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 14px 32px rgb(0 0 0 / 0.55), 0 28px 70px rgb(0 0 0 / 0.45);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 11%, transparent);
+}
+
+/* The Dracula palette. */
+:root[data-theme="dracula"] {
+  color-scheme: dark;
+  --bg: #1e1f29;
+  --sidebar: #21222c;
+  --panel: #282a36;
+  --inset: #22232e;
+  --raised: #343746;
+  --hover: #3c3f52;
+  --border: #343746;
+  --border-strong: #4b4f68;
+  --text: #f8f8f2;
+  --muted: #a9add0;
+  --accent: #bd93f9;
+  --accent-hover: #cfaefb;
+  --on-accent: #21222c;
+  --error: #ff6e6e;
+  --warning: #ffb86c;
+  --danger-bg: #e04848;
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45), 0 10px 28px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 14px 32px rgb(0 0 0 / 0.55), 0 28px 70px rgb(0 0 0 / 0.45);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --accent-soft: color-mix(in srgb, var(--accent) 20%, transparent);
+  --accent-softer: color-mix(in srgb, var(--accent) 11%, transparent);
+}
+
+/* Theme picker */
+.theme-picker {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.toolbar > .menu-anchor + .theme-picker {
+  margin-left: auto;
+}
+
+.theme-menu.dropdown {
+  left: auto;
+  right: 0;
+  min-width: 230px;
+}
+
+.theme-menu li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-menu li.menu-heading {
+  padding: 8px 10px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: default;
+}
+
+.theme-menu li.menu-heading:hover {
+  background: transparent;
+}
+
+.theme-name {
+  flex: 1;
+}
+
+.theme-check {
+  visibility: hidden;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.theme-menu li.on .theme-check {
+  visibility: visible;
+}
+
+.theme-menu li.on {
+  font-weight: 600;
+}
+
+.theme-swatch {
+  display: inline-flex;
+  flex: none;
+  overflow: hidden;
+  width: 36px;
+  height: 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  box-shadow: var(--shadow-xs);
+}
+
+.theme-swatch > span {
+  flex: 1;
+}
+
+/* "Match system": half light, half dark. */
+.theme-swatch.system {
+  background: linear-gradient(135deg, #f4f5f8 50%, #1c1e23 50%);
+}
+
+.theme-picker [data-tip]::after {
+  left: auto;
+  right: 0;
+  transform: translate(0, -3px);
+}
+
+.theme-picker [data-tip]:hover::after {
+  transform: translate(0, 0);
 }
