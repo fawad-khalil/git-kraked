@@ -2261,3 +2261,147 @@ select:focus {
 .repo-tabs [data-tip]:hover::after {
   transform: translate(0, 0);
 }
+
+/* ───────────── Pop-up dialogs for errors and confirmations ───────────── */
+
+.modal-overlay {
+  z-index: 50;
+}
+
+.dialog.modal {
+  width: min(460px, calc(100vw - 32px));
+  gap: 12px;
+  padding: 18px 20px 16px;
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.modal-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--on-accent);
+  background: var(--accent);
+  box-shadow: var(--shadow-xs);
+}
+
+.tone-warning .modal-icon {
+  background: var(--warning);
+}
+
+.tone-danger .modal-icon,
+.tone-error .modal-icon {
+  background: var(--error);
+}
+
+.modal-close {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.modal-message {
+  margin: 0 0 4px 38px;
+  max-height: 50vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.tone-error .modal-message {
+  padding: 10px 12px;
+  margin-left: 0;
+  border: 1px solid color-mix(in srgb, var(--error) 35%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--error) 8%, var(--inset));
+  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+  font-size: 12.5px;
+}
+
+.dialog.modal .dialog-actions {
+  align-items: center;
+  margin-top: 4px;
+}
+
+.modal-copy {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+/* Destructive buttons. */
+button.danger {
+  background: var(--error);
+  border-color: color-mix(in srgb, var(--error) 80%, black);
+  color: #fff;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
+
+button.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--error) 88%, black);
+  border-color: color-mix(in srgb, var(--error) 70%, black);
+}
+
+/* Errors that stay inside a panel or form: a tinted box, not bare red text. */
+.error-text {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--error) 35%, transparent);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--error) 8%, var(--panel));
+  color: var(--text);
+  font-size: 13px;
+}
+
+:root {
+  --danger-bg: #c62828;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --danger-bg: #c23b3b;
+  }
+}
+
+:root[data-theme="dark"] {
+  --danger-bg: #c23b3b;
+}
+
+button.danger,
+.tone-danger .modal-icon,
+.tone-error .modal-icon {
+  background: var(--danger-bg);
+}
+
+button.danger {
+  border-color: color-mix(in srgb, var(--danger-bg) 80%, black);
+}
+
+button.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger-bg) 88%, black);
+}
