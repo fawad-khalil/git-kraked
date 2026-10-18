@@ -15,6 +15,7 @@ import {
   checkoutRemoteBranch,
   createBranch,
   deleteBranch,
+  fetchAll,
   mergeBranch,
   renameBranch,
   setParentBranch,
@@ -24,6 +25,7 @@ import { Section } from "../ui/Section";
 import { confirmDialog } from "../ui/dialogs";
 import { ListFilter, matchesFilter } from "../ui/ListFilter";
 import { folderName } from "../format";
+import { addRemoteDialog } from "../repos/fixes";
 import { WorktreeDialog } from "./WorktreeDialog";
 
 interface Props {
@@ -130,6 +132,11 @@ export function BranchPanel({ repoPath, branches, stashes, worktrees, tags, onCh
     });
     if (!sure) return;
     run(() => stashDrop(repoPath, index), "Deleting the stash…", true);
+  }
+
+  async function newRemote() {
+    const name = await addRemoteDialog(repoPath, remotes.includes("origin") ? "upstream" : "origin");
+    if (name) run(async () => (await fetchAll(repoPath), `Added the remote ${name}.`), `Fetching ${name}…`);
   }
 
   async function run(action: () => Promise<string | void>, label = "Working…", quick = false) {
@@ -323,8 +330,17 @@ export function BranchPanel({ repoPath, branches, stashes, worktrees, tags, onCh
         </ul>
       </Section>
 
-      {remotes.length > 0 && (
-        <Section id="remotes" heading="h2" title={`Remotes (${remotes.length})`}>
+      <Section
+        id="remotes"
+        heading="h2"
+        title={`Remotes (${remotes.length})`}
+        actions={
+          <button className="small" disabled={busy} data-tip="Add a remote, e.g. a repository on GitHub" onClick={newRemote}>
+            Add
+          </button>
+        }
+      >
+        {remotes.length === 0 && <p className="muted no-match">No remotes yet. Add one to fetch, pull and push.</p>}
         {branches.remote.length > 1 && <ListFilter value={remoteQuery} onChange={setRemoteQuery} placeholder="Filter remote branches" />}
         {remoteQuery.trim() && shownRemote.length === 0 && <p className="muted no-match">No remote branches match.</p>}
         {remotes.filter((remote) => shownRemote.some((b) => b.remote === remote)).map((remote) => (
@@ -349,8 +365,7 @@ export function BranchPanel({ repoPath, branches, stashes, worktrees, tags, onCh
             </ul>
           </Section>
         ))}
-        </Section>
-      )}
+      </Section>
 
       {tags.length > 0 && (
         <Section id="tags" heading="h2" title={`Tags (${tags.length})`}>
