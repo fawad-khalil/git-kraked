@@ -23,6 +23,9 @@ export interface CommitInfo {
 /** The shape of a failed command; mirrors `CommandError` in src-tauri/src/lib.rs. */
 export type CommandError =
   | { kind: "notOwned"; message: string; path: string }
+  | { kind: "noIdentity"; message: string }
+  | { kind: "noRemote"; message: string }
+  | { kind: "signIn"; message: string }
   | { kind: "other"; message: string };
 
 export function asCommandError(e: unknown): CommandError {
@@ -82,6 +85,24 @@ export const historyRows = (indexes: number[]) => invoke<HistoryRow[]>("history_
 
 /** Adds the repo to Git's safe.directory list so it opens despite belonging to another user. */
 export const trustRepo = (path: string) => invoke<string>("trust_repo", { path });
+
+// Who commits, remotes and signing in. Mirrors identity.rs and remotes.rs in the core.
+
+export interface Identity {
+  name: string | null;
+  email: string | null;
+  /** Set for this repository only, overriding the global one. */
+  local: boolean;
+}
+
+export type IdentityScope = "repository" | "global";
+
+export const getIdentity = (path: string) => invoke<Identity>("get_identity", { path });
+export const setIdentity = (path: string, name: string, email: string, scope: IdentityScope) =>
+  invoke<void>("set_identity", { path, name, email, scope });
+export const addRemote = (path: string, name: string, url: string) => invoke<void>("add_remote", { path, name, url });
+/** Opens the system terminal in the repository, e.g. to sign in with `git fetch` once. */
+export const openTerminal = (path: string) => invoke<void>("open_terminal", { path });
 
 // File changes, diffs, staging and committing. Mirrors crates/gitkraked-core/src/changes.rs.
 
