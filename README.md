@@ -83,7 +83,7 @@ From the left:
 | Box with arrow in / out | Stash your changes / pop the latest stash. |
 | Cherries | Cherry-pick commits from another branch. |
 
-On the right: the repository name, the current branch with its parent, and the theme switch.
+On the right: the repository name, the current branch with its parent, and the theme picker.
 
 ## How to merge by dragging
 
@@ -105,11 +105,16 @@ have to match); Escape clears it. The current branch always stays in the Local l
 
 Every section collapses by clicking its header, and the app remembers which ones you closed.
 
-## Light and dark themes
+## Themes
 
-The three icons at the right end of the toolbar switch the theme: a monitor for **System**
-(follow your OS setting, the default), a sun for **Light** and a moon for **Dark**. The choice
-is remembered.
+The palette icon at the right end of the toolbar opens the theme menu:
+
+- **Match system** (the default): Light or Dark, following your OS setting.
+- Light themes: **Light**, **Lavender** (a very light purple, VS Code inspired) and
+  **Solarized Light**.
+- Dark themes: **Dark**, **Solarized Dark**, **Nord** and **Dracula**.
+
+Each entry shows a small colour swatch; the choice is remembered.
 
 ## Build from source
 
