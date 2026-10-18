@@ -83,7 +83,7 @@ From the left:
 | Box with arrow in / out | Stash your changes / pop the latest stash. |
 | Cherries | Cherry-pick commits from another branch. |
 
-On the right: the repository name, the current branch with its parent, and the theme picker.
+On the right: the repository name, the current branch with its parent, the light/dark toggle and the theme menu.
 
 ## How to merge by dragging
 
@@ -107,14 +107,18 @@ Every section collapses by clicking its header, and the app remembers which ones
 
 ## Themes
 
-The palette icon at the right end of the toolbar opens the theme menu:
+At the right end of the toolbar:
 
-- **Match system** (the default): Light or Dark, following your OS setting.
-- Light themes: **Light**, **Lavender** (a very light purple, VS Code inspired) and
-  **Solarized Light**.
-- Dark themes: **Dark**, **Solarized Dark**, **Nord** and **Dracula**.
+- **The toggle** picks the mode: a monitor for **System** (the default), a sun for **Light**,
+  a moon for **Dark**. System switches between your light and dark theme by itself when the
+  OS switches, for example at sunset and sunrise.
+- **The palette** chooses which theme each mode uses:
+  - Light uses **Light**, **Lavender** (a very light purple, VS Code inspired) or
+    **Solarized Light**.
+  - Dark uses **Dark**, **Solarized Dark**, **Nord** or **Dracula**.
 
-Each entry shows a small colour swatch; the choice is remembered.
+For example, Lavender for Light and Nord for Dark with the toggle on System gives Lavender by
+day and Nord by night. All choices are remembered.
 
 ## Build from source
 

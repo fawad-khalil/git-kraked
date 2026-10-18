@@ -57,7 +57,7 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
 | `branches/` | Left panel, branch tree view, branch capsule, worktree dialog. |
 | `sync/` | Fetch, pull, pull-from, push, stash buttons. |
 | `clone/`, `cherry/` | Clone and cherry-pick dialogs. |
-| `ui/` | `Section` (collapsible), `PaneResizer`, `ThemeSwitch` (theme picker), `themes` (theme list), `ListFilter`, toolbar `icons`, `dialogs` (pop-ups). |
+| `ui/` | `Section` (collapsible), `PaneResizer`, `ThemeSwitch` (light/dark toggle and theme menu), `themes` (theme list), `ListFilter`, toolbar `icons`, `dialogs` (pop-ups). |
 
 ## Key decisions
 
@@ -83,10 +83,12 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
   don't flash.
 - **Themes.** Colours are CSS tokens in layers (`--bg` → `--sidebar` → `--panel` → `--inset` /
   `--raised`) with shadow tokens. Dark values apply under `prefers-color-scheme: dark` unless
-  `<html data-theme>` is set, or always with `data-theme="dark"`. Named themes (`lavender`,
-  `solarized-light`, `solarized-dark`, `nord`, `dracula`) are each one `:root[data-theme=…]`
-  block that redefines every token, so adding a theme is one CSS block plus one entry in
-  `ui/themes.ts`. Text on accent colours uses `--on-accent` so each theme picks a readable one.
+  `<html data-theme>` is set, or always with `data-theme="dark"`. `ThemeSwitch` always sets the
+  resolved theme: the mode pref (`theme`: system/light/dark) picks between the `theme.light`
+  and `theme.dark` prefs, with a `prefers-color-scheme` listener for System (`appliedTheme` in
+  `ui/themes.ts`). Named themes (`lavender`, `solarized-light`, `solarized-dark`, `nord`,
+  `dracula`) are each one `:root[data-theme=…]` block that
+  redefines every token, so adding a theme is one CSS block plus one entry in `ui/themes.ts`. Text on accent colours uses `--on-accent` so each theme picks a readable one.
 - **Toolbar** is icon-only to fit on one row; icons are inline SVG in `ui/icons.tsx` drawn in
   `currentColor` so they follow the theme. Tooltips are CSS (`data-tip` attribute, shown after
   350 ms on hover or keyboard focus), not the browser's `title`, so they appear quickly and
@@ -124,8 +126,9 @@ src/ (React UI)  ──invoke──▶  src-tauri/src/lib.rs (commands)  ──�
 ## Change log
 
 ### 2026-10-18 — Round 8
-- Theme picker (palette icon) replaces the three theme icons: Match system, Light, Lavender,
-  Solarized Light, Dark, Solarized Dark, Nord, Dracula.
+- More themes: Lavender and Solarized Light for light mode; Solarized Dark, Nord and Dracula
+  for dark mode. The System / Light / Dark toggle stays; a palette menu chooses which theme
+  each mode uses, and System switches between them when the OS does.
 - Named themes are no longer overridden by the OS dark setting.
 
 ### 2026-10-18 — Round 7
