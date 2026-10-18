@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { ask, open } from "@tauri-apps/plugin-dialog";
 import {
@@ -39,6 +39,7 @@ import { usePref } from "./prefs";
 import { PaneResizer } from "./ui/PaneResizer";
 import { CommitGraph } from "./graph/CommitGraph";
 import { ThemeSwitch } from "./ui/ThemeSwitch";
+import { RepoTabs } from "./repos/RepoTabs";
 import { CherryIcon, FolderOpenIcon, PlusIcon, RefreshIcon } from "./ui/icons";
 import "./App.css";
 
@@ -68,6 +69,10 @@ function App() {
   const [changeCount, setChangeCount] = useState(0);
   const [cloning, setCloning] = useState(false);
   const [newMenu, setNewMenu] = useState(false);
+  /** Repositories open as tabs, in tab order, and the one to reopen on start. */
+  const [openRepos, setOpenRepos] = usePref<string[]>("repos.open", []);
+  const [lastRepo, setLastRepo] = usePref<string | null>("repos.active", null);
+  const loadToken = useRef(0);
   const [leftWidth, setLeftWidth] = usePref<number>("pane.left", 220);
   const [rightWidth, setRightWidth] = usePref<number>("pane.right", 360);
   /** Open when choosing commits to cherry-pick; `branch` preselects the source. */
@@ -82,6 +87,12 @@ function App() {
     } catch {
       // Keep the last status; opening or loading history reports real problems.
     }
+  }, []);
+
+  // Reopen the repository that was open last time.
+  useEffect(() => {
+    if (lastRepo && isTauri()) openPath(lastRepo);
+    // Only on start.
   }, []);
 
   // Pick up edits made in other programs when the window regains focus.
@@ -106,8 +117,7 @@ function App() {
     }
     const path = await open({ directory: true, title: "Open a Git repository" });
     if (typeof path !== "string") return;
-    setPickedPath(path);
-    await load(path);
+    await openPath(path);
   }
 
   async function createRepo() {
@@ -139,32 +149,78 @@ function App() {
    * a checkout: the history already loaded is kept and only its labels are refreshed.
    */
   async function load(path: string, quick = false) {
+    // A newer load (e.g. switching tabs quickly) wins; results of older ones are dropped.
+    const token = ++loadToken.current;
+    const current = () => token === loadToken.current;
+    const keep =
+      <T,>(set: (value: T) => void) =>
+      (value: T) => {
+        if (current()) set(value);
+      };
     try {
       const summary = await openRepo(path);
+      if (!current()) return;
       const sameRepo = summary.path === repo?.path;
       if (!sameRepo) {
+        // Clear the previous repository's lists so they never show under the new tab.
         setSelection({ kind: "wip" });
         setDiff(null);
+        setHistory(null);
+        setBranches(null);
+        setStatus(null);
+        setStashes([]);
+        setWorktrees([]);
+        setTags([]);
       }
       setRepo(summary);
       setError(null);
+      addOpenRepo(summary.path);
       const side = Promise.all([
-        refreshStatus(summary.path),
-        listBranches(summary.path).then(setBranches, () => setBranches(null)),
-        listStashes(summary.path).then(setStashes, () => setStashes([])),
-        listWorktrees(summary.path).then(setWorktrees, () => setWorktrees([])),
-        listTags(summary.path).then(setTags, () => setTags([])),
+        workingStatus(summary.path).then(keep(setStatus), () => {}),
+        listBranches(summary.path).then(keep(setBranches), () => keep(setBranches)(null)),
+        listStashes(summary.path).then(keep(setStashes), () => keep(setStashes)([])),
+        listWorktrees(summary.path).then(keep(setWorktrees), () => keep(setWorktrees)([])),
+        listTags(summary.path).then(keep(setTags), () => keep(setTags)([])),
       ]);
       if (quick && sameRepo && history && (await relabelHistory(summary.path).catch(() => false))) {
-        setRefsVersion((n) => n + 1);
+        if (current()) setRefsVersion((n) => n + 1);
       } else {
-        setHistory(await loadHistory(summary.path));
+        const loaded = await loadHistory(summary.path);
+        if (!current()) return;
+        setHistory(loaded);
         setLoadId((n) => n + 1);
       }
       await side;
     } catch (e) {
+      if (!current()) return;
       setRepo(null);
       setError(asCommandError(e));
+    }
+  }
+
+  /** Adds a repository to the tabs (if new) and remembers it as the one to reopen. */
+  function addOpenRepo(path: string) {
+    setOpenRepos((list) => (list.includes(path) ? list : [...list, path]));
+    setLastRepo(path);
+  }
+
+  /** Closes a tab; closing the open repository switches to its neighbour. */
+  function closeRepo(path: string) {
+    const index = openRepos.indexOf(path);
+    const rest = openRepos.filter((p) => p !== path);
+    setOpenRepos(rest);
+    if (path !== activePath) return;
+    const next = rest[Math.min(index, rest.length - 1)];
+    if (next) {
+      openPath(next);
+    } else {
+      loadToken.current++;
+      setLastRepo(null);
+      setRepo(null);
+      setError(null);
+      setHistory(null);
+      setBranches(null);
+      setStatus(null);
     }
   }
 
@@ -263,6 +319,8 @@ function App() {
     await runTask(`Cherry-picking ${row.commit.shortId}…`, () => cherryPick(repo.path, [row.commit.id]));
   }
 
+  /** The tab to highlight: the open repository, or the one that failed to open. */
+  const activePath = repo?.path ?? pickedPath;
   const changeTotal = status ? status.staged.length + status.unstaged.length : 0;
 
   return (
@@ -337,6 +395,16 @@ function App() {
         <ThemeSwitch />
       </header>
 
+      {openRepos.length > 0 && (
+        <RepoTabs
+          repos={openRepos}
+          active={activePath}
+          onSelect={openPath}
+          onClose={closeRepo}
+          onAdd={chooseRepo}
+        />
+      )}
+
       {busy && (
         <div className="loader" role="status" aria-live="polite">
           <div className="loader-bar" />
@@ -405,8 +473,7 @@ function App() {
           onClose={() => setCloning(false)}
           onCloned={(path) => {
             setCloning(false);
-            setPickedPath(path);
-            load(path);
+            openPath(path);
           }}
         />
       )}
