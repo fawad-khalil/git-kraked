@@ -40,9 +40,24 @@ function subscribe(notify: () => void) {
   };
 }
 
-/** A saved preference. `fallback` must be a string, number or boolean so snapshots compare by value. */
-export function usePref<T extends string | number | boolean>(key: string, fallback: T): [T, (value: T) => void] {
-  const value = useSyncExternalStore(subscribe, () => read(key, fallback));
-  const set = useCallback((next: T) => setPref(key, next), [key]);
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+
+/**
+ * A saved preference. A fallback that's an object or array is remembered on first read, so
+ * snapshots stay the same object until the preference is set. The setter also accepts an
+ * update function, applied to the latest saved value.
+ */
+export function usePref<T extends Json>(key: string, fallback: T): [T, (next: T | ((previous: T) => T)) => void] {
+  const value = useSyncExternalStore(subscribe, () => {
+    const current = read(key, fallback);
+    if (current === fallback && typeof fallback === "object" && fallback !== null) memory.set(key, fallback);
+    return current;
+  });
+  const set = useCallback(
+    (next: T | ((previous: T) => T)) =>
+      setPref(key, typeof next === "function" ? (next as (previous: T) => T)(read(key, fallback)) : next),
+    // The fallback only matters before the first save; leaving it out keeps the setter stable.
+    [key],
+  );
   return [value, set];
 }
