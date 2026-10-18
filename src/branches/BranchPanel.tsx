@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { ask } from "@tauri-apps/plugin-dialog";
 import {
   Branches,
   MergeResult,
@@ -22,6 +21,7 @@ import {
 } from "../api";
 import { setPref } from "../prefs";
 import { Section } from "../ui/Section";
+import { confirmDialog } from "../ui/dialogs";
 import { ListFilter, matchesFilter } from "../ui/ListFilter";
 import { folderName } from "../format";
 import { WorktreeDialog } from "./WorktreeDialog";
@@ -95,14 +95,25 @@ export function BranchPanel({ repoPath, branches, stashes, worktrees, tags, onCh
 
   async function dropWorktree(w: Worktree) {
     const label = folderName(w.path);
-    if (!(await ask(`Remove the worktree ${label}? Its folder is deleted; the branch${w.branch ? ` ${w.branch}` : ""} and its commits stay.`, { title: "Remove worktree", kind: "warning" }))) return;
+    const sure = await confirmDialog({
+      title: `Remove the worktree ${label}?`,
+      message: `Its folder is deleted. The branch${w.branch ? ` ${w.branch}` : ""} and its commits stay.`,
+      confirmLabel: "Remove worktree",
+      danger: true,
+    });
+    if (!sure) return;
     run(async () => {
       try {
         await removeWorktree(repoPath, w.path, false);
       } catch (e) {
         const { message } = asCommandError(e);
         if (!/modified or untracked|locked/.test(message)) throw e;
-        const force = await ask(`${message}\n\nRemove it anyway? Uncommitted changes in it are lost.`, { title: "Worktree has changes", kind: "warning" });
+        const force = await confirmDialog({
+          title: "The worktree has changes",
+          message: `${message}\n\nRemove it anyway? Uncommitted changes in it are lost.`,
+          confirmLabel: "Remove anyway",
+          danger: true,
+        });
         if (!force) return;
         await removeWorktree(repoPath, w.path, true);
       }
@@ -111,7 +122,13 @@ export function BranchPanel({ repoPath, branches, stashes, worktrees, tags, onCh
   }
 
   async function dropStash(index: number) {
-    if (!(await ask(`Delete stash@{${index}}? Its changes will be gone.`, { title: "Delete stash", kind: "warning" }))) return;
+    const sure = await confirmDialog({
+      title: `Delete stash@{${index}}?`,
+      message: "Its changes will be gone.",
+      confirmLabel: "Delete stash",
+      danger: true,
+    });
+    if (!sure) return;
     run(() => stashDrop(repoPath, index), "Deleting the stash…", true);
   }
 
@@ -149,7 +166,11 @@ export function BranchPanel({ repoPath, branches, stashes, worktrees, tags, onCh
     setDragging(null);
     setDropHover(false);
     if (!current || name === current) return;
-    const sure = await ask(`Merge ${name} into ${current}?`, { title: "Merge branch", kind: "info", okLabel: "Merge" });
+    const sure = await confirmDialog({
+      title: `Merge ${name} into ${current}?`,
+      message: `${current} gets the commits from ${name} that it doesn't have yet.`,
+      confirmLabel: "Merge",
+    });
     if (sure) merge(name);
   }
 
@@ -170,14 +191,25 @@ export function BranchPanel({ repoPath, branches, stashes, worktrees, tags, onCh
     run(async () => current && MERGE_MESSAGES[await mergeBranch(repoPath, name)](name, current), `Merging ${name}…`);
 
   async function remove(name: string) {
-    if (!(await ask(`Delete the branch ${name}?`, { title: "Delete branch", kind: "warning" }))) return;
+    const sure = await confirmDialog({
+      title: `Delete the branch ${name}?`,
+      message: "Only the branch name goes; commits that other branches contain stay.",
+      confirmLabel: "Delete branch",
+      danger: true,
+    });
+    if (!sure) return;
     run(async () => {
       try {
         await deleteBranch(repoPath, name, false);
       } catch (e) {
         const { message } = asCommandError(e);
         if (!message.includes("aren't merged")) throw e;
-        const force = await ask(`${message}.\n\nDelete it anyway?`, { title: "Unmerged branch", kind: "warning" });
+        const force = await confirmDialog({
+          title: `${name} isn't merged`,
+          message: `${message}.\n\nDelete it anyway? Its unmerged commits will no longer be on any branch.`,
+          confirmLabel: "Delete anyway",
+          danger: true,
+        });
         if (!force) return;
         await deleteBranch(repoPath, name, true);
       }
