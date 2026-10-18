@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
-import { ask, open } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import {
   CommandError,
   Branches,
@@ -39,6 +39,7 @@ import { usePref } from "./prefs";
 import { PaneResizer } from "./ui/PaneResizer";
 import { CommitGraph } from "./graph/CommitGraph";
 import { ThemeSwitch } from "./ui/ThemeSwitch";
+import { DialogHost, chooseDialog, confirmDialog, errorDialog } from "./ui/dialogs";
 import { RepoTabs } from "./repos/RepoTabs";
 import { CherryIcon, FolderOpenIcon, PlusIcon, RefreshIcon } from "./ui/icons";
 import "./App.css";
@@ -48,7 +49,6 @@ function App() {
   const [history, setHistory] = useState<HistoryMeta | null>(null);
   // Bumped on every load so the graph remounts with an empty page cache.
   const [loadId, setLoadId] = useState(0);
-  const [error, setError] = useState<CommandError | null>(null);
   // The folder the user picked, kept so "Trust this folder" can retry it.
   const [pickedPath, setPickedPath] = useState<string | null>(null);
   const [status, setStatus] = useState<WorkingStatus | null>(null);
@@ -60,7 +60,7 @@ function App() {
   const [busy, setBusy] = useState<string | null>(null);
   // Bumped when only labels changed, so the graph refetches rows but keeps its scroll.
   const [refsVersion, setRefsVersion] = useState(0);
-  const [notice, setNotice] = useState<{ message: string; isError: boolean } | null>(null);
+  const [notice, setNotice] = useState<{ message: string } | null>(null);
   /** What the right-hand panel shows: uncommitted work or one commit. */
   const [selection, setSelection] = useState<{ kind: "wip" } | { kind: "commit"; id: string } | null>(null);
   /** When set, the centre shows this diff instead of the graph. */
@@ -108,11 +108,10 @@ function App() {
 
   async function chooseRepo() {
     if (!isTauri()) {
-      setError({
-        kind: "other",
-        message:
-          "This page only works inside the GitKraked window. Run `npm run tauri dev` and use the window it opens, not a browser tab.",
-      });
+      errorDialog(
+        "This page only works inside the GitKraked window. Run `npm run tauri dev` and use the window it opens, not a browser tab.",
+        "Open the GitKraked window",
+      );
       return;
     }
     const path = await open({ directory: true, title: "Open a Git repository" });
@@ -173,7 +172,6 @@ function App() {
         setTags([]);
       }
       setRepo(summary);
-      setError(null);
       addOpenRepo(summary.path);
       const side = Promise.all([
         workingStatus(summary.path).then(keep(setStatus), () => {}),
@@ -194,8 +192,42 @@ function App() {
     } catch (e) {
       if (!current()) return;
       setRepo(null);
-      setError(asCommandError(e));
+      // Not awaited: the loader closes while the dialog is up.
+      reportOpenError(path, asCommandError(e));
     }
+  }
+
+  /** Explains why a folder didn't open, with the fix (trust it) or a way out (close its tab). */
+  async function reportOpenError(path: string, error: CommandError) {
+    const name = folderName(path);
+    if (error.kind === "notOwned") {
+      const trust = await chooseDialog({
+        title: `Git doesn't trust ${name}`,
+        message: `${error.message}.\n\nTrusting it adds ${error.path} to safe.directory in your global Git config, the same fix the git command suggests.`,
+        tone: "warning",
+        dismissValue: false,
+        actions: [
+          { label: "Cancel", value: false },
+          { label: "Trust and open", value: true, primary: true },
+        ],
+      });
+      if (trust) trustAndRetry(path);
+      return;
+    }
+    const inTabs = openRepos.includes(path);
+    const choice = await chooseDialog<"ok" | "close" | "other">({
+      title: `Couldn't open ${name}`,
+      message: error.message,
+      tone: "error",
+      copyable: true,
+      dismissValue: "ok",
+      actions: [
+        inTabs ? { label: "Close its tab", value: "close" } : { label: "Open another folder", value: "other" },
+        { label: "OK", value: "ok", primary: true },
+      ],
+    });
+    if (choice === "close") closeRepo(path);
+    if (choice === "other") chooseRepo();
   }
 
   /** Adds a repository to the tabs (if new) and remembers it as the one to reopen. */
@@ -217,7 +249,6 @@ function App() {
       loadToken.current++;
       setLastRepo(null);
       setRepo(null);
-      setError(null);
       setHistory(null);
       setBranches(null);
       setStatus(null);
@@ -256,13 +287,12 @@ function App() {
     }
   }
 
-  async function trustAndRetry() {
-    if (!pickedPath) return;
+  async function trustAndRetry(path: string) {
     try {
-      await trustRepo(pickedPath);
-      await load(pickedPath);
+      await trustRepo(path);
+      await openPath(path);
     } catch (e) {
-      setError(asCommandError(e));
+      errorDialog(asCommandError(e).message, `Couldn't trust ${folderName(path)}`);
     }
   }
 
@@ -277,13 +307,14 @@ function App() {
     }
   }
 
+  /** Successes show briefly at the bottom; errors open a dialog that has to be dismissed. */
   function showNotice(message: string, isError = false) {
-    setNotice({ message, isError });
+    if (isError) errorDialog(message, "That didn't work");
+    else setNotice({ message });
   }
 
-  // Successes fade on their own; errors stay until dismissed.
   useEffect(() => {
-    if (!notice || notice.isError) return;
+    if (!notice) return;
     const timer = setTimeout(() => setNotice(null), 5000);
     return () => clearTimeout(timer);
   }, [notice]);
@@ -310,10 +341,10 @@ function App() {
 
   async function pickOne(row: HistoryRow) {
     if (!repo || !currentBranch) return;
-    const sure = await ask(`Copy "${row.commit.summary}" (${row.commit.shortId}) onto ${currentBranch}?`, {
-      title: "Cherry-pick",
-      kind: "info",
-      okLabel: "Cherry-pick",
+    const sure = await confirmDialog({
+      title: `Cherry-pick ${row.commit.shortId} onto ${currentBranch}?`,
+      message: `Copies "${row.commit.summary}" onto ${currentBranch} as a new commit.`,
+      confirmLabel: "Cherry-pick",
     });
     if (!sure) return;
     await runTask(`Cherry-picking ${row.commit.shortId}…`, () => cherryPick(repo.path, [row.commit.id]));
@@ -415,26 +446,13 @@ function App() {
         </div>
       )}
 
-      {error && (
-        <div className="error">
-          <p>{error.message}</p>
-          {error.kind === "notOwned" && (
-            <>
-              <p className="hint">
-                Trusting it adds <code>{error.path}</code> to <code>safe.directory</code> in your
-                global Git config, the same fix the <code>git</code> command suggests.
-              </p>
-              <button onClick={trustAndRetry}>Trust this folder and open it</button>
-            </>
-          )}
-        </div>
-      )}
-
       {notice && (
-        <div className={`notice${notice.isError ? " is-error" : ""}`} onClick={() => setNotice(null)}>
+        <div className="notice" role="status" onClick={() => setNotice(null)}>
           {notice.message}
         </div>
       )}
+
+      <DialogHost />
 
       {cherry && repo && currentBranch && (
         <CherryPickDialog
@@ -478,7 +496,7 @@ function App() {
         />
       )}
 
-      {!repo && !error && (
+      {!repo && (
         <div className="welcome">
           <h1>GitKraked</h1>
           <p className="muted">Open a repository to see its history, or start a new one.</p>
