@@ -22,6 +22,9 @@ the fix in [tech-registry.md](tech-registry.md).
 - **Parent branch is a best guess** for branches not created in the app; it can be wrong.
   Right-click the right branch and choose "Set as parent of …".
 - **Tags can only be checked out**, not created, deleted or pushed, from the app yet.
+- **Switching repository tabs reloads the repository** (about 0.2 s for 20,000 commits) and
+  doesn't keep the graph's scroll position, the selected commit or an open diff.
+- **A tab whose folder was moved or deleted** shows an error when selected; close it with ×.
 - **A new repository has no commits**, so there's no branch to show in the left panel until the
   first commit.
 - **The uncommitted-changes row** joins HEAD with a dashed line only when HEAD's commit is in
