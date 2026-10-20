@@ -238,6 +238,37 @@ npm test                 # UI helpers
 cargo clippy --workspace --all-targets   # lints
 ```
 
+Every push to `master` and every pull request runs the same lints, tests and a build on
+Windows, macOS and Linux (`.github/workflows/ci.yml`).
+
+## Releases
+
+Installers are built by GitHub Actions (`.github/workflows/release.yml`) and attached to a
+GitHub release:
+
+- Windows: `.msi` and NSIS `-setup.exe`.
+- macOS: a universal `.dmg` (Apple silicon and Intel).
+- Linux, built on Ubuntu 22.04: `.deb`, `.rpm` and `.AppImage`.
+
+To make a release:
+
+1. Set the new version in `src-tauri/tauri.conf.json` (and, to keep them in step,
+   `package.json` and `Cargo.toml`), and commit it to `master`.
+2. Tag that commit and push the tag: `git tag v0.2.0 && git push origin v0.2.0`. You can also
+   run the **Release** workflow by hand from the Actions tab, which releases the version in
+   `tauri.conf.json` as `v<version>`.
+
+The workflow first runs the tests and the UI build, then builds all three platforms into a draft
+release, and publishes it only when all three succeed and every installer listed above is on the
+draft. Each build also keeps its installers as artifacts of the workflow run (Actions tab), so
+they can be downloaded even when the release isn't published. If one fails, the draft stays unpublished;
+running the workflow again reuses it. It stops at once if the tag doesn't match the version in
+`tauri.conf.json`, or if that version is already published.
+
+The macOS app is signed ad hoc (`signingIdentity` `-`), not with an Apple Developer ID, so
+macOS still warns on the first launch: right-click the app and choose Open. Windows installers
+aren't signed either, so SmartScreen may ask you to confirm.
+
 ## Layout
 
 | Path                     | What it is                                                                                           |
@@ -250,8 +281,7 @@ cargo clippy --workspace --all-targets   # lints
 
 Planned in this order; open to change. Known problems are in [bugs.md](bugs.md).
 
-1. **Try it for real on Windows**, then macOS and Linux, and fix what turns up. Add a CI build
-   for all three.
+1. **Try it for real on Windows**, then macOS and Linux, and fix what turns up.
 2. **Tags in full:** create (lightweight or annotated), delete, push.
 3. **Commits made with `git`**, so hooks and commit signing (GPG/SSH) work, matching what the
    `git` command does.

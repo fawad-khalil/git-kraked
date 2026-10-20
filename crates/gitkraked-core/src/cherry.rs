@@ -122,6 +122,8 @@ mod tests {
         let mut config = repo.config().unwrap();
         config.set_str("user.name", "Ada").unwrap();
         config.set_str("user.email", "ada@example.com").unwrap();
+        // Keep checkouts byte-for-byte: Git for Windows turns on autocrlf system-wide.
+        config.set_bool("core.autocrlf", false).unwrap();
         write(dir.path(), "a.txt", "base\n", "base");
         dir
     }
