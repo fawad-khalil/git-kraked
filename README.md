@@ -253,7 +253,8 @@ GitHub release:
 Releases are automatic. Every push to `master` runs the release workflow; when the version in
 `src-tauri/tauri.conf.json` has no `v<version>` tag yet and the tests and all three builds
 pass, it publishes the release and creates the tag. Pushes that don't change the version only
-run the tests.
+run the tests. GitHub writes the release notes: the pull requests merged since the previous
+release ("What's Changed") and any new contributors.
 
 To make a release:
 

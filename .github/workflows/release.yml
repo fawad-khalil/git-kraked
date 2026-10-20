@@ -106,7 +106,8 @@ jobs:
               tag_name: tag,
               target_commitish: context.sha,
               name: `GitKraked ${tag}`,
-              body: 'Download the installer for your system from the assets below.',
+              // "What's Changed": the PRs merged since the last release, and new contributors.
+              generate_release_notes: true,
               draft: true,
             });
             return data.id;
