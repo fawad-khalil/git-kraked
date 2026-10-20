@@ -253,7 +253,9 @@ To make a release:
    `tauri.conf.json` as `v<version>`.
 
 The workflow first runs the tests and the UI build, then builds all three platforms into a draft
-release, and publishes it only when all three succeed. If one fails, the draft stays unpublished;
+release, and publishes it only when all three succeed and every installer listed above is on the
+draft. Each build also keeps its installers as artifacts of the workflow run (Actions tab), so
+they can be downloaded even when the release isn't published. If one fails, the draft stays unpublished;
 running the workflow again reuses it. It stops at once if the tag doesn't match the version in
 `tauri.conf.json`, or if that version is already published.
 

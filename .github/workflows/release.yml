@@ -100,7 +100,7 @@ jobs:
 
   build:
     name: Build (${{ matrix.name }})
-    needs: draft
+    needs: [test, draft]
     strategy:
       fail-fast: false
       matrix:
@@ -108,12 +108,21 @@ jobs:
           - name: Windows
             os: windows-latest
             args: --bundles msi,nsis
+            files: |
+              target/release/bundle/msi/*.msi
+              target/release/bundle/nsis/*-setup.exe
           - name: macOS
             os: macos-latest
             args: --target universal-apple-darwin --bundles app,dmg
+            files: |
+              target/universal-apple-darwin/release/bundle/dmg/*.dmg
           - name: Linux
             os: ubuntu-22.04
             args: --bundles deb,rpm,appimage
+            files: |
+              target/release/bundle/deb/*.deb
+              target/release/bundle/rpm/*.rpm
+              target/release/bundle/appimage/*.AppImage
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -145,6 +154,14 @@ jobs:
           releaseId: ${{ needs.draft.outputs.release_id }}
           args: ${{ matrix.args }}
 
+      # Also keep the installers on the workflow run, so they can be downloaded from
+      # the Actions tab even if the release isn't published.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GitKraked-${{ needs.test.outputs.tag }}-${{ matrix.name }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
   publish:
     name: Publish release
     needs: [draft, build]
@@ -155,8 +172,28 @@ jobs:
           RELEASE_ID: ${{ needs.draft.outputs.release_id }}
         with:
           script: |
+            const release_id = Number(process.env.RELEASE_ID);
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              ...context.repo,
+              release_id,
+            });
+            const names = assets.map((a) => a.name);
+            core.info(`Release assets:\n${names.join('\n')}`);
+            const expected = {
+              'Windows .msi': /\.msi$/,
+              'Windows NSIS installer': /-setup\.exe$/,
+              'macOS .dmg': /\.dmg$/,
+              'Linux .deb': /\.deb$/,
+              'Linux .rpm': /\.rpm$/,
+              'Linux .AppImage': /\.AppImage$/,
+            };
+            const missing = Object.keys(expected).filter((k) => !names.some((n) => expected[k].test(n)));
+            if (missing.length > 0) {
+              core.setFailed(`Not publishing: the draft has no ${missing.join(', ')}.`);
+              return;
+            }
             await github.rest.repos.updateRelease({
               ...context.repo,
-              release_id: Number(process.env.RELEASE_ID),
+              release_id,
               draft: false,
             });
