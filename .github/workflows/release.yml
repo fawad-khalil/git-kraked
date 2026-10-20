@@ -2,14 +2,16 @@ name: Release
 
 on:
   push:
+    branches: [master]
     tags: ['v*']
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# One release run at a time, so two quick pushes can't both release the same version.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release
   cancel-in-progress: false
 
 jobs:
@@ -18,23 +20,33 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       tag: ${{ steps.version.outputs.tag }}
+      release: ${{ steps.version.outputs.release }}
     steps:
       - uses: actions/checkout@v4
 
-      # A tag must match the version in tauri.conf.json. A manual run from a branch
-      # releases that version as v<version>.
+      # The release is tagged v<version> from tauri.conf.json. A pushed tag must match it.
+      # A push to master releases only when that tag doesn't exist yet, so bumping the
+      # version is what makes a new release; other pushes just run the tests.
       - name: Check the version
         id: version
         shell: bash
         run: |
           version=$(node -p "require('./src-tauri/tauri.conf.json').version")
           tag="v$version"
+          release=true
           if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "$tag" ]; then
             echo "::error::Tag $GITHUB_REF_NAME doesn't match version $version in src-tauri/tauri.conf.json (expected $tag)."
             exit 1
           fi
-          echo "Releasing $tag"
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_TYPE" = "branch" ] \
+            && [ -n "$(git ls-remote --tags origin "refs/tags/$tag")" ]; then
+            echo "$tag is already tagged. Bump the version in tauri.conf.json to release again."
+            release=false
+          else
+            echo "Releasing $tag"
+          fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
 
       - name: Install Linux system libraries
         run: |
@@ -64,6 +76,7 @@ jobs:
   draft:
     name: Create draft release
     needs: test
+    if: needs.test.outputs.release == 'true'
     runs-on: ubuntu-22.04
     outputs:
       release_id: ${{ steps.draft.outputs.result }}
@@ -192,6 +205,7 @@ jobs:
               core.setFailed(`Not publishing: the draft has no ${missing.join(', ')}.`);
               return;
             }
+            // Publishing creates the v<version> tag on the commit that was built.
             await github.rest.repos.updateRelease({
               ...context.repo,
               release_id,
