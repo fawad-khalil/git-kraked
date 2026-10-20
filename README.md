@@ -10,12 +10,14 @@ Status: v1 feature-complete, early. See [bugs.md](bugs.md) for known problems an
 ## What it does
 
 **Repositories**
+
 - Open a repository folder, create a new empty one, or clone one by URL with a progress bar
   and Cancel.
 - Repositories owned by another user (common for WSL folders) can be trusted with one click.
 - Worktrees: create one for an existing or new branch, open it, remove it, prune missing ones.
 
 **History**
+
 - The full history as a commit graph, smooth even with 100,000+ commits. Tags are included.
 - Uncommitted changes are the first row of the graph (`// WIP`); click it to stage and commit.
 - Filter commits by message, author or commit id.
@@ -26,12 +28,14 @@ Status: v1 feature-complete, early. See [bugs.md](bugs.md) for known problems an
   ahead and behind its parent each one is.
 
 **Changes**
+
 - Commit details and diffs, inline or side by side.
 - Stage and unstage whole files, whole folders (tree view) or single hunks.
 - Changed files as a flat list or a folder tree.
 - Commit and amend.
 
 **Branches**
+
 - Create, check out, rename, delete; check out remote branches as tracking branches.
 - Checkouts, merges and other Git operations show a loader and block clicks until the window
   has caught up, so nothing stale can be clicked.
@@ -42,11 +46,13 @@ Status: v1 feature-complete, early. See [bugs.md](bugs.md) for known problems an
   `feature | from main ↑4 ↓2`: 4 commits of its own, 2 new ones on main it doesn't have yet.
 
 **Tags**
+
 - The left panel lists tags, newest first, with a filter. Double-click one
   to check it out (you're then not on a branch; Git calls this a detached HEAD), or right-click
   it to create a branch there.
 
 **Remotes and stashes**
+
 - Fetch, pull (merge or rebase) and push, using your own `git` and its credentials.
 - **Pull from** brings any other branch into the current one; it suggests the parent branch.
 - Stash (untracked files included), pop, apply and delete stashes.
@@ -90,16 +96,16 @@ operation you were doing runs again by itself.
 Every toolbar button is an icon; hover one (or tab to it) for a tooltip saying what it does.
 From the left:
 
-| Icon | What it does |
-| --- | --- |
-| Folder | Open a repository folder. |
-| + | Create a new empty repository, or clone one. |
-| Circular arrow | Refresh history, branches and changes. |
-| Cloud | Fetch from all remotes. |
-| Arrow down | Pull. The small arrow next to it chooses merge or rebase, and pulls from another branch (the parent is offered first). |
-| Arrow up | Push. |
-| Box with arrow in / out | Stash your changes / pop the latest stash. |
-| Cherries | Cherry-pick commits from another branch. |
+| Icon                    | What it does                                                                                                           |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Folder                  | Open a repository folder.                                                                                              |
+| +                       | Create a new empty repository, or clone one.                                                                           |
+| Circular arrow          | Refresh history, branches and changes.                                                                                 |
+| Cloud                   | Fetch from all remotes.                                                                                                |
+| Arrow down              | Pull. The small arrow next to it chooses merge or rebase, and pulls from another branch (the parent is offered first). |
+| Arrow up                | Push.                                                                                                                  |
+| Box with arrow in / out | Stash your changes / pop the latest stash.                                                                             |
+| Cherries                | Cherry-pick commits from another branch.                                                                               |
 
 On the right: the repository name, the current branch with its parent, the light/dark toggle and the theme menu.
 
@@ -142,8 +148,8 @@ day and Nord by night. All choices are remembered.
 
 You need, on every platform:
 
-- **Rust 1.88 or newer** (the code uses Rust 2024), installed with [rustup](https://rustup.rs/).
-- **Node.js 20 or newer** with npm.
+- **Rust 1.88 or newer** (the code uses Rust 2024), installed with [rustup](https://rustup.rs/). Tested with 1.99.1.
+- **Node.js 20 or newer** with npm. Tested with 22.15.1.
 - **Git** on your PATH. Fetch, pull, push, clone, cherry-pick and worktrees run your own `git`,
   so they use the credentials and SSH keys it already has.
 - Tauri's system libraries for your OS, listed below (from
@@ -188,7 +194,7 @@ build compiles libgit2 and Tauri and takes a few minutes; later builds are quick
 
    Output: `target/release/bundle/macos/GitKraked.app` and `target/release/bundle/dmg/*.dmg`.
    To build for both Apple silicon and Intel: `rustup target add x86_64-apple-darwin
-   aarch64-apple-darwin`, then `npm run tauri build -- --target universal-apple-darwin`.
+aarch64-apple-darwin`, then `npm run tauri build -- --target universal-apple-darwin`.
    The build isn't signed, so the first launch needs right-click → Open.
 
 ### Linux
@@ -234,11 +240,11 @@ cargo clippy --workspace --all-targets   # lints
 
 ## Layout
 
-| Path | What it is |
-| --- | --- |
+| Path                     | What it is                                                                                           |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `crates/gitkraked-core/` | All Git logic, in Rust, using `git2` (libgit2) and the `git` command. No UI code, fully unit-tested. |
-| `src-tauri/` | The Tauri desktop shell. Exposes core functions to the UI as commands. |
-| `src/` | The React + TypeScript interface. Calls commands through `src/api.ts`. |
+| `src-tauri/`             | The Tauri desktop shell. Exposes core functions to the UI as commands.                               |
+| `src/`                   | The React + TypeScript interface. Calls commands through `src/api.ts`.                               |
 
 ## Next plan
 
