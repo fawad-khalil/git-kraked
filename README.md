@@ -250,20 +250,26 @@ GitHub release:
 - macOS: a universal `.dmg` (Apple silicon and Intel).
 - Linux, built on Ubuntu 22.04: `.deb`, `.rpm` and `.AppImage`.
 
+Releases are automatic. Every push to `master` runs the release workflow; when the version in
+`src-tauri/tauri.conf.json` has no `v<version>` tag yet and the tests and all three builds
+pass, it publishes the release and creates the tag. Pushes that don't change the version only
+run the tests.
+
 To make a release:
 
-1. Set the new version in `src-tauri/tauri.conf.json` (and, to keep them in step,
-   `package.json` and `Cargo.toml`), and commit it to `master`.
-2. Tag that commit and push the tag: `git tag v0.2.0 && git push origin v0.2.0`. You can also
-   run the **Release** workflow by hand from the Actions tab, which releases the version in
-   `tauri.conf.json` as `v<version>`.
+1. Bump the version in `src-tauri/tauri.conf.json` (and, to keep them in step, `package.json`
+   and `Cargo.toml`).
+2. Merge that to `master`. The release appears as `v<version>` once the builds finish.
+
+You can also push a `v*` tag yourself (it must match the version) or run the **Release**
+workflow by hand from the Actions tab.
 
 The workflow first runs the tests and the UI build, then builds all three platforms into a draft
 release, and publishes it only when all three succeed and every installer listed above is on the
 draft. Each build also keeps its installers as artifacts of the workflow run (Actions tab), so
-they can be downloaded even when the release isn't published. If one fails, the draft stays unpublished;
-running the workflow again reuses it. It stops at once if the tag doesn't match the version in
-`tauri.conf.json`, or if that version is already published.
+they can be downloaded even when the release isn't published. If one fails, the draft stays
+unpublished and no tag is created; running the workflow again reuses the draft. A pushed tag
+that doesn't match the version stops the run at once.
 
 The macOS app is signed ad hoc (`signingIdentity` `-`), not with an Apple Developer ID, so
 macOS still warns on the first launch: right-click the app and choose Open. Windows installers
